@@ -1435,6 +1435,30 @@ input[type="text"]:focus {
     }
 }
 
+#mobilePasteTextarea {
+    width: 100%;
+    min-height: 120px;
+    padding: 12px;
+    border: 2px solid rgba(128, 128, 128, 0.3);
+    border-radius: 16px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.3));
+    backdrop-filter: blur(10px) saturate(120%);
+    -webkit-backdrop-filter: blur(10px) saturate(120%);
+    font-size: 14px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    color: #333333;
+    resize: vertical;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+#mobilePasteTextarea:focus {
+    outline: none;
+    border-color: rgba(0, 122, 255, 0.5);
+    box-shadow: 0 8px 24px rgba(0, 122, 255, 0.2);
+    transform: translateY(-1px);
+}
+
 /* Apple风格打印样式 */
 @media print {
     body {
@@ -1460,5 +1484,323 @@ input[type="text"]:focus {
     .file-item {
         break-inside: avoid;
         page-break-inside: avoid;
+    }
+
+    /* 移动端粘贴区域样式 */
+    .mobile-paste-section {
+        margin-bottom: 20px;
+    }
+
+    .mobile-paste-content {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    #mobilePasteTextarea {
+        width: 100%;
+        min-height: 120px;
+        padding: 12px;
+        border: 2px solid rgba(128, 128, 128, 0.3);
+        border-radius: 16px;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.3));
+        backdrop-filter: blur(10px) saturate(120%);
+        -webkit-backdrop-filter: blur(10px) saturate(120%);
+        font-size: 14px;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        color: #333333;
+        resize: vertical;
+        transition: all 0.2s ease;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    }
+
+    #mobilePasteTextarea:focus {
+        outline: none;
+        border-color: rgba(0, 122, 255, 0.5);
+        box-shadow: 0 8px 24px rgba(0, 122, 255, 0.2);
+        transform: translateY(-1px);
+    }
+
+    .mobile-paste-actions {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+
+    #confirmUploadBtn, #clearTextBtn {
+        flex: 1;
+        min-width: 160px;
+        padding: 12px 16px;
+        border: none;
+        border-radius: 16px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+    }
+
+    #confirmUploadBtn {
+        background: linear-gradient(180deg, #34C759, #2CA047);
+        color: white;
+        border: 2px solid rgba(255, 255, 255, 0.4);
+    }
+
+    #confirmUploadBtn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(52, 199, 89, 0.3);
+    }
+
+    #confirmUploadBtn:active {
+        transform: translateY(0);
+        box-shadow: 0 4px 16px rgba(52, 199, 89, 0.3);
+    }
+
+    #clearTextBtn {
+        background: linear-gradient(180deg, #FF3B30, #CC0000);
+        color: white;
+        border: 2px solid rgba(255, 255, 255, 0.4);
+    }
+
+    #clearTextBtn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(255, 59, 48, 0.3);
+    }
+
+    #clearTextBtn:active {
+        transform: translateY(0);
+        box-shadow: 0 4px 16px rgba(255, 59, 48, 0.3);
+    }
+
+    .mobile-paste-status {
+        font-size: 14px;
+        color: #666666;
+        min-height: 20px;
+    }
+
+    .mobile-paste-status.success {
+        color: #34C759;
+    }
+
+    .mobile-paste-status.error {
+        color: #FF3B30;
+    }
+
+    /* 移动端适配 */
+    @media (max-width: 480px) {
+        #mobilePasteTextarea {
+            min-height: 100px;
+            font-size: 14px;
+            padding: 10px;
+        }
+
+        #confirmUploadBtn, #clearTextBtn {
+            flex: 1 1 100%;
+            min-width: 100%;
+        }
+
+        #mobilePasteBtn {
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+        }
+    }
+
+    /* Apple风格暗色模式 */
+    @media (prefers-color-scheme: dark) {
+        #mobilePasteTextarea {
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            color: #ffffff;
+        }
+
+        #mobilePasteTextarea:focus {
+            border-color: rgba(0, 122, 255, 0.7);
+            box-shadow: 0 8px 24px rgba(0, 122, 255, 0.4);
+        }
+
+        .mobile-paste-status {
+            color: #cccccc;
+        }
+    }
+
+    /* 移动端特殊样式 */
+    @media (max-width: 768px) {
+        .mobile-paste-section {
+            margin-bottom: 16px;
+        }
+
+        .card {
+            margin-bottom: 16px;
+        }
+    }
+
+    /* 移动端粘贴通知样式 */
+    .mobile-paste-notice {
+        position: fixed;
+        bottom: -100%;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 9999;
+        background: linear-gradient(180deg, rgba(128, 128, 128, 0.7), rgba(128, 128, 128, 0.3));
+        backdrop-filter: blur(10px) saturate(120%);
+        -webkit-backdrop-filter: blur(10px) saturate(120%);
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-radius: 20px;
+        padding: 14px 16px;
+        width: calc(100% - 40px);
+        max-width: 420px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .mobile-paste-notice.show {
+        bottom: 20px;
+    }
+
+    @keyframes slideUp {
+        from {
+            bottom: -100%;
+            opacity: 0;
+        }
+        to {
+            bottom: 20px;
+            opacity: 1;
+        }
+    }
+
+    .mobile-paste-content {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        width: 100%;
+    }
+
+    .mobile-paste-icon {
+        font-size: 24px;
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.3));
+        border: 2px solid rgba(255, 255, 255, 0.4);
+        border-radius: 50%;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    }
+
+    .mobile-paste-text {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .mobile-paste-title {
+        font-weight: 600;
+        font-size: 14px;
+        color: #2d2d2d;
+        margin-bottom: 4px;
+    }
+
+    .mobile-paste-preview {
+        font-size: 12px;
+        color: #666666;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .mobile-paste-actions {
+        display: flex;
+        gap: 8px;
+        margin-left: 8px;
+    }
+
+    .btn-paste-yes, .btn-paste-no {
+        padding: 8px 12px;
+        border: none;
+        border-radius: 12px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    .btn-paste-yes {
+        background: linear-gradient(180deg, #007AFF, #0056CC);
+        color: white;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+    }
+
+    .btn-paste-yes:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0, 122, 255, 0.3);
+    }
+
+    .btn-paste-yes:active {
+        transform: translateY(0);
+        box-shadow: 0 2px 8px rgba(0, 122, 255, 0.3);
+    }
+
+    .btn-paste-no {
+        background: linear-gradient(180deg, #FF3B30, #CC0000);
+        color: white;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+    }
+
+    .btn-paste-no:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(255, 59, 48, 0.3);
+    }
+
+    .btn-paste-no:active {
+        transform: translateY(0);
+        box-shadow: 0 2px 8px rgba(255, 59, 48, 0.3);
+    }
+
+    /* 移动端适配 */
+    @media (max-width: 480px) {
+        .mobile-paste-notice {
+            width: calc(100% - 20px);
+            padding: 12px 14px;
+        }
+
+        .mobile-paste-content {
+            gap: 10px;
+        }
+
+        .mobile-paste-icon {
+            width: 36px;
+            height: 36px;
+            font-size: 20px;
+        }
+
+        .btn-paste-yes, .btn-paste-no {
+            padding: 7px 10px;
+            font-size: 12px;
+        }
+    }
+
+    /* Apple风格暗色模式 */
+    @media (prefers-color-scheme: dark) {
+        .mobile-paste-notice {
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+
+        .mobile-paste-icon {
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.05));
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .mobile-paste-title {
+            color: #ffffff;
+        }
+
+        .mobile-paste-preview {
+            color: #cccccc;
+        }
     }
 }

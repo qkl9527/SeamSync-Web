@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=0.5, maximum-scale=1.0, user-scalable=no">
     <title>Realtime File Transfer - Room</title>
     <link rel="stylesheet" href="/css/apple-style.css">
 </head>
@@ -19,6 +19,26 @@
         <main class="main-content">
             <!-- Notification Area -->
             <div id="notifications" class="notifications"></div>
+
+            <!-- Mobile Paste Section -->
+            <div id="mobilePasteSection" class="mobile-paste-section" style="display: none;">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>📱 Mobile Paste</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="mobile-paste-content">
+                            <textarea id="mobilePasteTextarea" placeholder="Paste your text here..."></textarea>
+                            <div class="mobile-paste-actions">
+                                <button id="clearTextBtn" class="btn-secondary">🗑️ Clear</button>
+                                <!-- <button id="confirmUploadBtn" class="btn-primary">✅ Confirm Upload</button> -->
+                                <button id="mobilePasteBtn" class="btn-primary">📋 Paste</button>
+                            </div>
+                            <div id="mobilePasteStatus" class="mobile-paste-status"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
             <!-- Upload Area -->
             <div class="upload-section">

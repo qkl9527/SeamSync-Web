@@ -8,12 +8,17 @@ const dotenv = require('dotenv');
 
 // Load environment variables
 dotenv.config();
+const localIPs = getLocalIPs();
+const firstLocalIp = localIPs[0];
+console.log("localIPs:", localIPs, firstLocalIp);
+const CORS_ORIGIN =  `http://${firstLocalIp}:3000` || process.env.CORS_ORIGIN || "http://localhost:3000";
+console.log("CORS_ORIGIN:", CORS_ORIGIN);
 
 const app = express();
 const server = http.createServer(app);
 const io = require('socket.io')(server, {
   cors: {
-    origin: process.env.CORS_ORIGIN || "http://localhost:3000",
+    origin: CORS_ORIGIN,
     methods: ["GET", "POST"]
   }
 });
@@ -307,7 +312,6 @@ function getLocalIPs() {
 // Start server
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-  const localIPs = getLocalIPs();
 
   console.log(`\n🚀 Server running on port ${PORT}`);
   console.log(`\n🌐 Access URLs:`);

@@ -4,6 +4,9 @@ let roomId = null;
 let currentFiles = new Map();
 let uploadPromises = new Map();
 
+// Check if this is a mobile device
+const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
 // DOM Elements
 const roomIdDisplay = document.getElementById('roomIdDisplay');
 const userCount = document.getElementById('userCount');
@@ -17,10 +20,18 @@ const shareUrl = document.getElementById('shareUrl');
 const refreshBtn = document.getElementById('refreshBtn');
 const maxFileSize = document.getElementById('maxFileSize');
 
+// Mobile Paste Elements
+const mobilePasteSection = document.getElementById('mobilePasteSection');
+const mobilePasteTextarea = document.getElementById('mobilePasteTextarea');
+const mobilePasteBtn = document.getElementById('mobilePasteBtn');
+const confirmUploadBtn = document.getElementById('confirmUploadBtn');
+const clearTextBtn = document.getElementById('clearTextBtn');
+const mobilePasteStatus = document.getElementById('mobilePasteStatus');
+
 // QR Code Elements - 初始化时不获取，避免null
 let qrCodeImage, qrUrlInput, copyQrUrlBtn, downloadQrBtn, refreshQrBtn;
 
-// Initialize
+// Initialize mobile paste detection
 document.addEventListener('DOMContentLoaded', () => {
     // Get room ID from URL
     roomId = getRoomIdFromUrl();
@@ -42,6 +53,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!checkBrowserSupport()) {
         showToast('Your browser may not support all features. Please update to the latest version.', 'warning');
     }
+
+    // Check if this is a mobile device and show mobile paste section
+    checkMobileDevice();
 
     // Join room
     socket.emit('join-room', roomId);
@@ -66,6 +80,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initialize QR Code elements and setup after DOM is ready
     setTimeout(()=>{initializeQRCode();}, 1500);
+
+    // Mobile paste detection
+    setTimeout(() => {
+        detectMobileClipboard();
+    }, 2000);
 });
 
 // Setup event listeners
@@ -112,6 +131,27 @@ function setupEventListeners() {
     });
 
     refreshBtn.addEventListener('click', refreshFileList);
+
+    // Mobile Paste buttons
+    if (mobilePasteBtn) {
+        mobilePasteBtn.addEventListener('click', () => {
+            pasteFromClipboard();
+        });
+    }
+
+    if (confirmUploadBtn) {
+        confirmUploadBtn.addEventListener('click', () => {
+            uploadTextFromTextarea();
+        });
+    }
+
+    if (clearTextBtn) {
+        clearTextBtn.addEventListener('click', () => {
+            mobilePasteTextarea.value = '';
+            mobilePasteStatus.textContent = '';
+            showToast('Text cleared', 'info');
+        });
+    }
 
     // QR Code buttons
     if (copyQrUrlBtn) {
@@ -638,6 +678,8 @@ window.addEventListener('unhandledrejection', (event) => {
     handleGlobalError(event.reason);
 });
 
+
+
 // Clipboard support functions
 function setupClipboardSupport() {
     // 只添加一次事件监听器，防止重复
@@ -756,9 +798,20 @@ async function handlePastedText(textItem) {
             textItem.getAsString(resolve);
         });
 
-        const text = await textPromise;
+        let text = await textPromise;
 
         if (text && text.trim()) {
+
+            if (textItem.type == 'text/html') {
+                let parser = new DOMParser();
+                let doc = parser.parseFromString(text, "text/html");
+                text = doc.body.textContent;
+            }
+
+            if (isMobile) {
+                mobilePasteTextarea.value = text
+            }
+
             console.log('📋 Creating file from pasted text:', text.substring(0, 50) + '...');
             // Create text file from clipboard content
             const fileName = `pasted-text-${Date.now()}.txt`;
@@ -782,6 +835,7 @@ async function handlePastedText(textItem) {
     } catch (error) {
         console.error('Error handling pasted text:', error);
         showToast('Failed to paste text', 'error');
+        alert(error)
     }
 }
 
@@ -885,14 +939,14 @@ function setupQRCode() {
 
     try {
         // 生成 QR 码
-        const qr = qrcode(0, 'M');  // 0 = 自动选择版本, M = 纠错等级
-        qr.addData(currentUrl);
-        qr.make();
+        // const qr = qrcode(0, 'M');  // 0 = 自动选择版本, M = 纠错等级
+        // qr.addData(currentUrl);
+        // qr.make();
 
-        // 生成 base64 图片
-        const qrCodeDataUrl = qr.createDataURL(200, 20);  // 200x200像素，20像素模块大小
+        // // 生成 base64 图片
+        // const qrCodeDataUrl = qr.createDataURL(200, 20);  // 200x200像素，20像素模块大小
 
-        qrCodeImage.src = qrCodeDataUrl;
+        // qrCodeImage.src = qrCodeDataUrl;
         qrCodeImage.alt = 'Room QR Code';
         showToast('QR Code generated successfully', 'success');
     } catch (error) {
@@ -1441,8 +1495,8 @@ async function copyToClipboard(text) {
         const textArea = document.createElement('textarea');
         textArea.value = text;
         textArea.style.position = 'fixed';
-        textArea.style.left = '-999999px';
-        textArea.style.top = '-999999px';
+        textArea.style.left = '999999px';
+        textArea.style.top = '999999px';
         document.body.appendChild(textArea);
         textArea.focus();
         textArea.select();
@@ -1467,6 +1521,223 @@ function escapeHtml(text) {
         .replace(/>/g, '>')
         .replace(/"/g, '"')
         .replace(/'/g, "'");
+}
+
+// Mobile paste detection
+function detectMobileClipboard() {
+    if (!isMobile) {
+        return; // Only run on mobile devices
+    }
+
+    console.log('📱 Mobile device detected, checking clipboard...');
+
+    // Check for Clipboard API support
+    if (navigator.clipboard && navigator.clipboard.readText) {
+        // Modern Clipboard API
+        checkClipboardModern();
+    } else {
+        // Fallback method for older mobile browsers
+        checkClipboardFallback();
+    }
+}
+
+// Modern clipboard detection (for supported mobile browsers)
+async function checkClipboardModern() {
+    try {
+        const text = await navigator.clipboard.readText();
+        console.log("checkClipboardModern:", text)
+        console.log('📋 Clipboard content (modern):', text.substring(0, 50) + '...');
+
+        if (text && text.trim()) {
+            showMobilePasteNotification(text);
+        }
+    } catch (error) {
+        console.warn('📱 Clipboard read failed (modern):', error);
+        // Fallback to legacy method
+        checkClipboardFallback();
+    }
+}
+
+// Fallback clipboard detection for older mobile browsers
+function checkClipboardFallback() {
+    console.log('📱 Using fallback clipboard detection...');
+
+    // Create a temporary input element
+    const tempInput = document.createElement('input');
+    tempInput.type = 'text';
+    tempInput.style.position = 'fixed';
+    tempInput.style.left = '-9999px';
+    tempInput.style.top = '-9999px';
+    tempInput.style.opacity = '0';
+    tempInput.value = '';
+    document.body.appendChild(tempInput);
+
+    // Focus and select to get clipboard content
+    tempInput.focus();
+    tempInput.select();
+
+    // Listen for input events (user pastes)
+    tempInput.addEventListener('input', (e) => {
+        const text = e.target.value;
+        console.log('📋 Clipboard content (fallback):', text.substring(0, 50) + '...');
+
+        if (text && text.trim()) {
+            showMobilePasteNotification(text);
+        }
+    });
+
+    // Clean up after a short delay
+    setTimeout(() => {
+        document.body.removeChild(tempInput);
+    }, 5000);
+}
+
+// Show mobile paste notification
+function showMobilePasteNotification(text) {
+    const notification = document.createElement('div');
+    notification.className = 'mobile-paste-notice';
+    notification.innerHTML = `
+        <div class="mobile-paste-content">
+            <div class="mobile-paste-icon">📋</div>
+            <div class="mobile-paste-text">
+                <div class="mobile-paste-title">📋 Paste Available</div>
+                <div class="mobile-paste-preview">${escapeHtml(text.substring(0, 50))}${text.length > 50 ? '...' : ''}</div>
+            </div>
+            <div class="mobile-paste-actions">
+                <button class="btn-paste-yes">✅ Paste</button>
+                <button class="btn-paste-no">❌ No</button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(notification);
+
+    // Animate in
+    setTimeout(() => {
+        notification.classList.add('show');
+    }, 100);
+
+    // Add event listeners
+    const yesBtn = notification.querySelector('.btn-paste-yes');
+    const noBtn = notification.querySelector('.btn-paste-no');
+
+    yesBtn.addEventListener('click', () => {
+        // Create a text file from clipboard content
+        const fileName = `pasted-text-${Date.now()}.txt`;
+        const file = new File([text], fileName, {
+            type: 'text/plain',
+            lastModified: Date.now()
+        });
+
+        // Set origin to indicate mobile paste
+        file.origin = 'clipboard-mobile';
+
+        // Upload the file
+        handleFiles([file]);
+
+        // Remove notification
+        notification.classList.remove('show');
+        setTimeout(() => {
+            document.body.removeChild(notification);
+        }, 300);
+    });
+
+    noBtn.addEventListener('click', () => {
+        // Remove notification without pasting
+        notification.classList.remove('show');
+        setTimeout(() => {
+            document.body.removeChild(notification);
+        }, 300);
+    });
+}
+
+// Check if this is a mobile device and show mobile paste section
+function checkMobileDevice() {
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+    if (isMobile) {
+        console.log('📱 Mobile device detected, showing mobile paste section');
+        if (mobilePasteSection) {
+            mobilePasteSection.style.display = 'block';
+        }
+    }
+}
+
+// Paste from clipboard to textarea
+async function pasteFromClipboard() {
+    try {
+        let text = '';
+
+        // Try modern Clipboard API
+        if (navigator.clipboard && navigator.clipboard.readText) {
+            text = await navigator.clipboard.readText();
+        } else {
+            // Fallback: use execCommand
+            const tempInput = document.createElement('textarea');
+            tempInput.style.position = 'fixed';
+            tempInput.style.left = '-9999px';
+            tempInput.style.top = '-9999px';
+            tempInput.style.opacity = '0';
+            document.body.appendChild(tempInput);
+
+            tempInput.focus();
+            tempInput.select();
+
+            const successful = document.execCommand('paste');
+            text = tempInput.value;
+
+            document.body.removeChild(tempInput);
+
+            if (!successful) {
+                throw new Error('Paste failed');
+            }
+        }
+
+        if (text && text.trim()) {
+            mobilePasteTextarea.value = text;
+            mobilePasteStatus.textContent = `✅ Pasted ${text.length} characters`;
+            mobilePasteStatus.className = 'mobile-paste-status success';
+            showToast('Text pasted from clipboard', 'success');
+        } else {
+            mobilePasteStatus.textContent = '❌ Clipboard is empty';
+            mobilePasteStatus.className = 'mobile-paste-status error';
+            showToast('Clipboard is empty', 'error');
+        }
+    } catch (error) {
+        console.error('Paste error:', error);
+        mobilePasteStatus.textContent = '❌ Failed to paste from clipboard';
+        mobilePasteStatus.className = 'mobile-paste-status error';
+        showToast('Failed to paste from clipboard', 'error');
+    }
+}
+
+// Upload text from textarea as a file
+function uploadTextFromTextarea() {
+    const text = mobilePasteTextarea.value;
+
+    if (!text || !text.trim()) {
+        mobilePasteStatus.textContent = '❌ Please enter some text first';
+        mobilePasteStatus.className = 'mobile-paste-status error';
+        showToast('Please enter some text first', 'error');
+        return;
+    }
+
+    // Create a text file from textarea content
+    const fileName = `mobile-text-${Date.now()}.txt`;
+    const file = new File([text], fileName, {
+        type: 'text/plain',
+        lastModified: Date.now()
+    });
+
+    // Set origin to indicate mobile upload
+    file.origin = 'mobile-textarea';
+
+    // Upload the file
+    handleFiles([file]);
+
+    mobilePasteStatus.textContent = `📤 Uploading ${fileName}...`;
+    mobilePasteStatus.className = 'mobile-paste-status';
+    showToast('Uploading text file...', 'info');
 }
 
 // Enhanced file upload to store text content for preview
