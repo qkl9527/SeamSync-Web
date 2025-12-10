@@ -2,4 +2,7 @@
 uploads/
 
 # claude
-.claude
+.claude/
+
+# node
+node_modules/
