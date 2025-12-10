@@ -65,7 +65,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setTimeout(refreshFileList, 1000);
 
     // Initialize QR Code elements and setup after DOM is ready
-    setTimeout(()=>{initializeQRCode();}, 3000);
+    setTimeout(()=>{initializeQRCode();}, 1500);
 });
 
 // Setup event listeners
@@ -871,7 +871,7 @@ function initializeQRCode() {
     refreshQrBtn = document.getElementById('refreshQrBtn');
 
     // 现在设置 QR Code
-    // setupQRCode();
+    setupQRCode();
 }
 
 // QR Code Functions
@@ -883,10 +883,21 @@ function setupQRCode() {
         qrUrlInput.value = currentUrl;
     }
 
-    // Check if qrcode-generator library is available
-    if (typeof qrcode === 'undefined') {
-        console.warn('qrcode-generator library not loaded, falling back to Google Charts API');
-        showToast('QR Code library not loaded, using fallback method', 'warning');
+    try {
+        // 生成 QR 码
+        const qr = qrcode(0, 'M');  // 0 = 自动选择版本, M = 纠错等级
+        qr.addData(currentUrl);
+        qr.make();
+
+        // 生成 base64 图片
+        const qrCodeDataUrl = qr.createDataURL(200, 20);  // 200x200像素，20像素模块大小
+
+        qrCodeImage.src = qrCodeDataUrl;
+        qrCodeImage.alt = 'Room QR Code';
+        showToast('QR Code generated successfully', 'success');
+    } catch (error) {
+        console.error('QR Code generation failed:', error);
+        showToast('Failed to generate QR Code', 'error');
 
         // Fallback to Google Charts API
         const qrCodeUrl = `https://chart.googleapis.com/chart?chs=200x200&cht=qr&chl=${encodeURIComponent(currentUrl)}&choe=UTF-8`;
@@ -894,35 +905,48 @@ function setupQRCode() {
             qrCodeImage.src = qrCodeUrl;
             qrCodeImage.alt = 'Room QR Code';
         }
-        return;
     }
 
-    // Generate QR Code using qrcode-generator library
-    if (qrCodeImage) {
-        try {
-            // 生成 QR 码
-            const qr = qrcode(0, 'M');  // 0 = 自动选择版本, M = 纠错等级
-            qr.addData(currentUrl);
-            qr.make();
+    // // Check if qrcode-generator library is available
+    // if (typeof qrcode === 'undefined') {
+    //     console.warn('qrcode-generator library not loaded, falling back to Google Charts API');
+    //     showToast('QR Code library not loaded, using fallback method', 'warning');
 
-            // 生成 base64 图片
-            const qrCodeDataUrl = qr.createDataURL(200, 20);  // 200x200像素，20像素模块大小
+    //     // Fallback to Google Charts API
+    //     const qrCodeUrl = `https://chart.googleapis.com/chart?chs=200x200&cht=qr&chl=${encodeURIComponent(currentUrl)}&choe=UTF-8`;
+    //     if (qrCodeImage) {
+    //         qrCodeImage.src = qrCodeUrl;
+    //         qrCodeImage.alt = 'Room QR Code';
+    //     }
+    //     return;
+    // }
 
-            qrCodeImage.src = qrCodeDataUrl;
-            qrCodeImage.alt = 'Room QR Code';
-            showToast('QR Code generated successfully', 'success');
-        } catch (error) {
-            console.error('QR Code generation failed:', error);
-            showToast('Failed to generate QR Code', 'error');
+    // // Generate QR Code using qrcode-generator library
+    // if (qrCodeImage) {
+    //     try {
+    //         // 生成 QR 码
+    //         const qr = qrcode(0, 'M');  // 0 = 自动选择版本, M = 纠错等级
+    //         qr.addData(currentUrl);
+    //         qr.make();
 
-            // Fallback to Google Charts API
-            const qrCodeUrl = `https://chart.googleapis.com/chart?chs=200x200&cht=qr&chl=${encodeURIComponent(currentUrl)}&choe=UTF-8`;
-            if (qrCodeImage) {
-                qrCodeImage.src = qrCodeUrl;
-                qrCodeImage.alt = 'Room QR Code';
-            }
-        }
-    }
+    //         // 生成 base64 图片
+    //         const qrCodeDataUrl = qr.createDataURL(200, 20);  // 200x200像素，20像素模块大小
+
+    //         qrCodeImage.src = qrCodeDataUrl;
+    //         qrCodeImage.alt = 'Room QR Code';
+    //         showToast('QR Code generated successfully', 'success');
+    //     } catch (error) {
+    //         console.error('QR Code generation failed:', error);
+    //         showToast('Failed to generate QR Code', 'error');
+
+    //         // Fallback to Google Charts API
+    //         const qrCodeUrl = `https://chart.googleapis.com/chart?chs=200x200&cht=qr&chl=${encodeURIComponent(currentUrl)}&choe=UTF-8`;
+    //         if (qrCodeImage) {
+    //             qrCodeImage.src = qrCodeUrl;
+    //             qrCodeImage.alt = 'Room QR Code';
+    //         }
+    //     }
+    // }
 }
 
 function downloadQRCode() {

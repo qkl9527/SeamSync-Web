@@ -287,8 +287,41 @@ app.get('/room/:roomId', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'room.html'));
 });
 
+// Get local IP addresses
+function getLocalIPs() {
+  const interfaces = require('os').networkInterfaces();
+  const ips = [];
+
+  for (const name of Object.keys(interfaces)) {
+    for (const interface of interfaces[name]) {
+      // Skip internal and IPv6 addresses
+      if (interface.family === 'IPv4' && !interface.internal) {
+        ips.push(interface.address);
+      }
+    }
+  }
+
+  return ips;
+}
+
 // Start server
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  const localIPs = getLocalIPs();
+
+  console.log(`\n🚀 Server running on port ${PORT}`);
+  console.log(`\n🌐 Access URLs:`);
+  console.log(`   Local:    http://localhost:${PORT}`);
+  console.log(`   Network:  http://127.0.0.1:${PORT}`);
+
+  if (localIPs.length > 0) {
+    console.log(`\n🏠 Local Network IPs:`);
+    localIPs.forEach((ip, index) => {
+      console.log(`   ${index + 1}. http://${ip}:${PORT}`);
+    });
+  }
+
+  if (localIPs.length === 0) {
+    console.log(`\n⚠️  No local network IPs found. You can still use localhost.`);
+  }
 });
