@@ -66,7 +66,10 @@ document.addEventListener('DOMContentLoaded', () => {
 function setupEventListeners() {
     // Upload area interactions
     dropZone.addEventListener('click', () => fileInput.click());
-    browseBtn.addEventListener('click', () => fileInput.click());
+    browseBtn.addEventListener('click', (e) => {
+        e.stopPropagation(); // 阻止事件冒泡，避免触发dropZone的click事件
+        fileInput.click();
+    });
 
     // 防止浏览器默认的拖拽行为
     ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
@@ -942,7 +945,7 @@ function createFileElement(fileData) {
 function createContentPreview(fileData) {
     const type = (fileData.type || '').toLowerCase();
 
-    // Image preview - 显示缩略图
+    // Image preview - 直接显示图片
     if (type.startsWith('image/')) {
         const preview = document.createElement('div');
         preview.className = 'content-preview image-preview';
@@ -954,13 +957,13 @@ function createContentPreview(fileData) {
         return preview;
     }
 
-    // Video preview - 显示视频预览
+    // Video preview - 直接显示视频预览图
     if (type.startsWith('video/')) {
         const preview = document.createElement('div');
         preview.className = 'content-preview video-preview';
         preview.innerHTML = `
             <div class="preview-thumbnail">
-                <video controls class="preview-video" preload="metadata">
+                <video controls class="preview-video" preload="metadata" poster="">
                     <source src="${fileData.url}" type="${type}">
                     Your browser does not support the video tag.
                 </video>
@@ -969,7 +972,7 @@ function createContentPreview(fileData) {
         return preview;
     }
 
-    // Text preview - 显示文本内容
+    // Text preview - 显示前2行内容
     if (type.startsWith('text/') || isTextFile(fileData.name)) {
         const preview = document.createElement('div');
         preview.className = 'content-preview text-preview';
@@ -993,14 +996,14 @@ function createContentPreview(fileData) {
             expandBtn.onclick = () => openTextPreview(fileData);
         }
 
-        // 显示文本内容
+        // 显示前2行内容
         setTimeout(() => {
             const textContentElement = preview.querySelector('.text-content');
             if (textContentElement) {
                 if (fileData.textContent) {
-                    updateInlineTextPreview(fileData.id, fileData.textContent);
+                    updateInlineTextPreview(fileData.id, fileData.textContent, 2);
                 } else if (fileData.url) {
-                    loadTextContentForPreview(fileData, textContentElement);
+                    loadTextContentForPreview(fileData, textContentElement, 2);
                 }
             }
         }, 50);
@@ -1221,17 +1224,16 @@ async function loadTextContent(fileData, elementId) {
 }
 
 // Update inline text preview
-function updateInlineTextPreview(fileId, text) {
+function updateInlineTextPreview(fileId, text, maxLines = 2) {
     const previewElement = document.querySelector(`.text-content[data-file-id="${fileId}"]`);
     if (!previewElement) return;
 
     const lines = text.split('\n');
-    const maxLines = 10;
     const isLongText = lines.length > maxLines;
 
     let displayText = lines.slice(0, maxLines).join('\n');
     if (isLongText) {
-        displayText += '\n⋯⋯ (showing first 10 lines, click "More" to view all)';
+        displayText += `\n⋯⋯ (showing first ${maxLines} lines, click "More" to view all)`;
     }
 
     previewElement.innerHTML = `
@@ -1242,7 +1244,13 @@ function updateInlineTextPreview(fileId, text) {
     // Add copy button functionality
     const copyBtn = previewElement.closest('.file-item')?.querySelector('.btn-copy-text');
     if (copyBtn) {
-        copyBtn.onclick = () => copyTextFromFile(fileData);
+        // 使用fileId获取fileData
+        copyBtn.onclick = () => {
+            const fileData = currentFiles.get(fileId);
+            if (fileData) {
+                copyTextFromFile(fileData);
+            }
+        };
     }
 
     // Add expand button functionality
