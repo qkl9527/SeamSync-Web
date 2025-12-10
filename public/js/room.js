@@ -68,6 +68,14 @@ function setupEventListeners() {
     dropZone.addEventListener('click', () => fileInput.click());
     browseBtn.addEventListener('click', () => fileInput.click());
 
+    // 防止浏览器默认的拖拽行为
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+        });
+    });
+
     dropZone.addEventListener('dragover', (e) => {
         e.preventDefault();
         dropZone.classList.add('dragover');
