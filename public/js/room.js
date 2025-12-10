@@ -336,7 +336,16 @@ function completeFileUpload(fileData) {
         // 如果是文本文件且有预览内容，更新预览
         const type = (fileData.type || '').toLowerCase();
         if ((type.startsWith('text/') || isTextFile(fileData.name)) && fileData.textContent) {
-            updateInlineTextPreview(fileData.id, fileData.textContent);
+            updateInlineTextPreview(fileData.id, fileData.textContent, 2);
+        }
+
+        // 重要：如果文件卡片还没有预览内容，现在添加
+        const hasPreviewContent = fileElement.querySelector('.content-preview');
+        if (!hasPreviewContent) {
+            const contentPreview = createContentPreview(updatedFileData);
+            if (contentPreview) {
+                fileElement.appendChild(contentPreview);
+            }
         }
     }
 }
@@ -1271,6 +1280,41 @@ async function copyTextFromFile(fileData) {
     } catch (error) {
         console.error('Error copying text:', error);
         showToast('Failed to copy text', 'error');
+    }
+}
+
+// Enhanced clipboard copy function with fallback
+async function copyToClipboard(text) {
+    // Method 1: Modern Clipboard API (preferred)
+    if (navigator.clipboard && window.isSecureContext) {
+        try {
+            await navigator.clipboard.writeText(text);
+            return;
+        } catch (err) {
+            console.warn('Clipboard API failed:', err);
+        }
+    }
+
+    // Method 2: Fallback using execCommand (for older browsers)
+    try {
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        textArea.style.top = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+
+        const successful = document.execCommand('copy');
+        document.body.removeChild(textArea);
+
+        if (!successful) {
+            throw new Error('execCommand failed');
+        }
+    } catch (err) {
+        console.error('Copy failed:', err);
+        throw err;
     }
 }
 
