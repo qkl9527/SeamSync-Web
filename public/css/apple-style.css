@@ -1106,6 +1106,134 @@ input[type="text"]:focus {
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
 }
 
+/* QR Code Section */
+.qr-section {
+    margin-top: 24px;
+}
+
+.qr-container {
+    display: flex;
+    gap: 24px;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.qr-code {
+    flex: 0 0 auto;
+    padding: 16px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-secondary);
+    border-radius: 16px;
+    box-shadow: var(--shadow-sm);
+}
+
+.qr-code img {
+    width: 200px;
+    height: 200px;
+    border-radius: 12px;
+    background: white;
+    border: 1px solid var(--border-color);
+    display: block;
+}
+
+.qr-info {
+    flex: 1 1 300px;
+    min-width: 300px;
+}
+
+.qr-info p {
+    margin-bottom: 12px;
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    font-weight: 500;
+}
+
+.qr-url {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+}
+
+.qr-url input[type="text"] {
+    flex: 1;
+    min-width: 200px;
+    padding: 10px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    font-size: 0.9rem;
+    background: var(--card-bg);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+.qr-actions {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+}
+
+.qr-tips {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-secondary);
+    border-radius: 12px;
+    padding: 12px;
+}
+
+.qr-tips p {
+    margin: 0 0 8px 0;
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.qr-tips ul {
+    margin: 0;
+    padding-left: 20px;
+    color: var(--text-secondary);
+}
+
+.qr-tips li {
+    margin-bottom: 4px;
+    line-height: 1.5;
+}
+
+/* QR Code响应式设计 */
+@media (max-width: 768px) {
+    .qr-container {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .qr-code img {
+        width: 160px;
+        height: 160px;
+    }
+
+    .qr-info {
+        min-width: 100%;
+    }
+
+    .qr-url input[type="text"] {
+        min-width: 100%;
+    }
+
+    .qr-actions {
+        justify-content: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .qr-code img {
+        width: 140px;
+        height: 140px;
+    }
+
+    .qr-code {
+        padding: 12px;
+    }
+}
+
 /* Apple风格消息 */
 .error-message, .success-message, .warning-message {
     padding: 14px 16px;

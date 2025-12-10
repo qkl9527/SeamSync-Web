@@ -71,10 +71,46 @@
 
         <footer class="footer">
             <p>🔗 Share this URL with others to join: <span id="shareUrl"></span></p>
+
+            <!-- QR Code Section -->
+            <div class="qr-section">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>📱 Scan to Join on Mobile</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="qr-container">
+                            <div class="qr-code">
+                                <img id="qrCodeImage" src="" alt="Room QR Code" loading="lazy">
+                            </div>
+                            <div class="qr-info">
+                                <p>Scan this QR code with your phone to join this room directly:</p>
+                                <div class="qr-url">
+                                    <input type="text" id="qrUrlInput" readonly>
+                                    <button class="btn-secondary" id="copyQrUrlBtn" title="Copy URL">📋 Copy</button>
+                                </div>
+                                <div class="qr-actions">
+                                    <button class="btn-primary" id="downloadQrBtn">📥 Download QR</button>
+                                    <button class="btn-secondary" id="refreshQrBtn">🔄 Refresh</button>
+                                </div>
+                                <div class="qr-tips">
+                                    <p>💡 Tips:</p>
+                                    <ul>
+                                        <li>Open camera app and point to QR code to scan</li>
+                                        <li>Or use any QR code scanner app</li>
+                                        <li>Share this page URL with friends for easy access</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </footer>
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
+    <script src="/js/qrcode.js"></script>
     <script src="/js/room.js"></script>
 </body>
 </html>

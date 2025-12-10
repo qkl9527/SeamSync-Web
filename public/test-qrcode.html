@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Code Test</title>
+    <script src="/js/qrcode.js"></script>
+</head>
+<body>
+    <h1>QR Code Library Test</h1>
+    <p>Testing if qrcode-generator library is loaded correctly...</p>
+
+    <div id="test-result"></div>
+    <img id="test-qrcode" alt="Test QR Code">
+
+    <script>
+        console.log('Testing qrcode library...');
+
+        if (typeof qrcode === 'undefined') {
+            document.getElementById('test-result').innerHTML = '<p style="color: red;">❌ qrcode library is NOT loaded</p>';
+            console.log('❌ qrcode library is NOT loaded');
+        } else {
+            document.getElementById('test-result').innerHTML = '<p style="color: green;">✅ qrcode library is loaded successfully</p>';
+            console.log('✅ qrcode library is loaded successfully');
+
+            try {
+                // Test QR code generation
+                const qr = qrcode(0, 'M');
+                qr.addData('https://example.com');
+                qr.make();
+                const dataUrl = qr.createDataURL(200, 20);
+
+                const img = document.getElementById('test-qrcode');
+                img.src = dataUrl;
+                img.style.border = '1px solid #ccc';
+                img.style.padding = '10px';
+                img.style.borderRadius = '8px';
+
+                console.log('✅ QR code generated successfully');
+            } catch (error) {
+                console.error('❌ QR code generation failed:', error);
+                document.getElementById('test-result').innerHTML += '<p style="color: red;">❌ QR code generation failed</p>';
+            }
+        }
+    </script>
+</body>
+</html>

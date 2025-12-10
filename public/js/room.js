@@ -17,6 +17,9 @@ const shareUrl = document.getElementById('shareUrl');
 const refreshBtn = document.getElementById('refreshBtn');
 const maxFileSize = document.getElementById('maxFileSize');
 
+// QR Code Elements - 初始化时不获取，避免null
+let qrCodeImage, qrUrlInput, copyQrUrlBtn, downloadQrBtn, refreshQrBtn;
+
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
     // Get room ID from URL
@@ -60,6 +63,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initial file list refresh
     setTimeout(refreshFileList, 1000);
+
+    // Initialize QR Code elements and setup after DOM is ready
+    initializeQRCode();
 });
 
 // Setup event listeners
@@ -106,6 +112,26 @@ function setupEventListeners() {
     });
 
     refreshBtn.addEventListener('click', refreshFileList);
+
+    // QR Code buttons
+    if (copyQrUrlBtn) {
+        copyQrUrlBtn.addEventListener('click', async () => {
+            try {
+                await copyToClipboard(qrUrlInput.value);
+                showToast('Room URL copied to clipboard', 'success');
+            } catch (error) {
+                showToast('Failed to copy URL', 'error');
+            }
+        });
+    }
+
+    if (downloadQrBtn) {
+        downloadQrBtn.addEventListener('click', downloadQRCode);
+    }
+
+    if (refreshQrBtn) {
+        refreshQrBtn.addEventListener('click', setupQRCode);
+    }
 
     // Clipboard paste support
     setupClipboardSupport();
@@ -874,6 +900,108 @@ async function uploadFile(file) {
         console.error('Upload error:', error);
         showToast('Upload error occurred', 'error');
     }
+}
+
+// Initialize QR Code elements and setup
+function initializeQRCode() {
+    // 确保 DOM 元素已加载后再获取
+    qrCodeImage = document.getElementById('qrCodeImage');
+    qrUrlInput = document.getElementById('qrUrlInput');
+    copyQrUrlBtn = document.getElementById('copyQrUrlBtn');
+    downloadQrBtn = document.getElementById('downloadQrBtn');
+    refreshQrBtn = document.getElementById('refreshQrBtn');
+
+    // 现在设置 QR Code
+    setupQRCode();
+}
+
+// QR Code Functions
+function setupQRCode() {
+    const currentUrl = window.location.href;
+
+    // Set URL input
+    if (qrUrlInput) {
+        qrUrlInput.value = currentUrl;
+    }
+
+    // Check if qrcode-generator library is available
+    if (typeof qrcode === 'undefined') {
+        console.warn('qrcode-generator library not loaded, falling back to Google Charts API');
+        showToast('QR Code library not loaded, using fallback method', 'warning');
+
+        // Fallback to Google Charts API
+        const qrCodeUrl = `https://chart.googleapis.com/chart?chs=200x200&cht=qr&chl=${encodeURIComponent(currentUrl)}&choe=UTF-8`;
+        if (qrCodeImage) {
+            qrCodeImage.src = qrCodeUrl;
+            qrCodeImage.alt = 'Room QR Code';
+        }
+        return;
+    }
+
+    // Generate QR Code using qrcode-generator library
+    if (qrCodeImage) {
+        try {
+            // 生成 QR 码
+            const qr = qrcode(0, 'M');  // 0 = 自动选择版本, M = 纠错等级
+            qr.addData(currentUrl);
+            qr.make();
+
+            // 生成 base64 图片
+            const qrCodeDataUrl = qr.createDataURL(200, 20);  // 200x200像素，20像素模块大小
+
+            qrCodeImage.src = qrCodeDataUrl;
+            qrCodeImage.alt = 'Room QR Code';
+            showToast('QR Code generated successfully', 'success');
+        } catch (error) {
+            console.error('QR Code generation failed:', error);
+            showToast('Failed to generate QR Code', 'error');
+
+            // Fallback to Google Charts API
+            const qrCodeUrl = `https://chart.googleapis.com/chart?chs=200x200&cht=qr&chl=${encodeURIComponent(currentUrl)}&choe=UTF-8`;
+            if (qrCodeImage) {
+                qrCodeImage.src = qrCodeUrl;
+                qrCodeImage.alt = 'Room QR Code';
+            }
+        }
+    }
+}
+
+function downloadQRCode() {
+    if (!qrCodeImage || !qrCodeImage.src) {
+        showToast('QR Code not available', 'error');
+        return;
+    }
+
+    // Create download link
+    const link = document.createElement('a');
+    link.href = qrCodeImage.src;
+    link.download = `room-${roomId}-qr-code.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    showToast('QR Code downloading...', 'success');
+}
+
+// Utility function to get domain with port
+function getCurrentDomain() {
+    const protocol = window.location.protocol;
+    const host = window.location.host;
+    return `${protocol}//${host}`;
+}
+
+// Utility function to format bytes
+function formatBytes(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+// Utility function to generate unique ID
+function generateUniqueId() {
+    return Math.random().toString(36).substr(2, 9) + '-' + Date.now().toString(36);
 }
 
 // Update file element creation to show origin and preview
