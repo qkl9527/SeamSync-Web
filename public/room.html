@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Realtime File Transfer - Room</title>
+    <link rel="stylesheet" href="/css/apple-style.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>📁 File Transfer Room</h1>
+            <div class="room-header">
+                <div class="room-id">Room: <span id="roomIdDisplay"></span></div>
+                <div class="user-count">👥 <span id="userCount">0</span> users online</div>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <!-- Notification Area -->
+            <div id="notifications" class="notifications"></div>
+
+            <!-- Upload Area -->
+            <div class="upload-section">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>📤 Upload Files</h2>
+                    </div>
+                    <div class="card-body">
+                        <div id="dropZone" class="drop-zone">
+                            <div class="drop-zone-content">
+                                <div class="drop-icon">📁</div>
+                                <h3>Drag & Drop Files Here</h3>
+                                <p>or</p>
+                                <button id="browseBtn" class="btn-primary">Browse Files</button>
+                                <input type="file" id="fileInput" multiple style="display: none;">
+                            </div>
+                        </div>
+
+                        <div class="upload-info">
+                            <p>✅ Supports all file types (images, videos, documents, archives)</p>
+                            <p>📏 Max file size: <span id="maxFileSize">50MB</span></p>
+                            <p>📋 <strong>New!</strong> Paste files, images, or text with Ctrl+V (Cmd+V)</p>
+                            <p>👁️ <strong>New!</strong> Preview images, videos, and text files directly in the list</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- File List -->
+            <div class="files-section">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>📋 Files (<span id="fileCount">0</span>)</h2>
+                        <div class="card-actions">
+                            <button id="refreshBtn" class="btn-secondary">🔄 Refresh</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div id="fileList" class="file-list">
+                            <div class="empty-state">
+                                <div class="empty-icon">📭</div>
+                                <h3>No files yet</h3>
+                                <p>Upload your first file or wait for others to upload</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer class="footer">
+            <p>🔗 Share this URL with others to join: <span id="shareUrl"></span></p>
+        </footer>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/js/room.js"></script>
+</body>
+</html>

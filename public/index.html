@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Realtime File Transfer - Create Room</title>
+    <link rel="stylesheet" href="/css/apple-style.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>🚀 Realtime File Transfer</h1>
+            <p class="subtitle">Create a room and share files in real-time with anyone</p>
+        </header>
+
+        <main class="main-content">
+            <div class="card">
+                <div class="card-header">
+                    <h2>Create New Transfer Room</h2>
+                </div>
+                <div class="card-body">
+                    <button id="createRoomBtn" class="btn-primary">
+                        🔗 Create New Room
+                    </button>
+
+                    <div id="roomInfo" class="room-info" style="display: none;">
+                        <div class="success-message">
+                            <h3>✅ Room Created Successfully!</h3>
+                            <p>Your room is ready to use. Share the link below with others.</p>
+                        </div>
+
+                        <div class="room-details">
+                            <div class="form-group">
+                                <label for="roomUrl">Room URL:</label>
+                                <div class="url-container">
+                                    <input type="text" id="roomUrl" readonly>
+                                    <button id="copyUrlBtn" class="btn-secondary">📋 Copy</button>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="roomCode">Room Code:</label>
+                                <div class="code-container">
+                                    <input type="text" id="roomCode" readonly>
+                                    <button id="copyCodeBtn" class="btn-secondary">📋 Copy</button>
+                                </div>
+                            </div>
+
+                            <div class="sharing-options">
+                                <h4>Share via:</h4>
+                                <div class="share-buttons">
+                                    <button id="shareEmail" class="btn-share">✉️ Email</button>
+                                    <button id="shareWhatsApp" class="btn-share">💬 WhatsApp</button>
+                                    <button id="shareTelegram" class="btn-share">✈️ Telegram</button>
+                                    <button id="shareCopy" class="btn-share">🔗 Copy All</button>
+                                </div>
+                            </div>
+
+                            <div class="actions">
+                                <a id="goToRoomBtn" class="btn-primary" style="display: none;">➡️ Go to Room</a>
+                                <button id="createAnotherBtn" class="btn-secondary">➕ Create Another</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="errorDiv" class="error-message" style="display: none;"></div>
+                </div>
+            </div>
+
+            <div class="features">
+                <h3>✨ Features</h3>
+                <div class="features-grid">
+                    <div class="feature-item">
+                        <span class="feature-icon">🔄</span>
+                        <h4>Real-time Sync</h4>
+                        <p>All participants see files instantly</p>
+                    </div>
+                    <div class="feature-item">
+                        <span class="feature-icon">📁</span>
+                        <h4>All File Types</h4>
+                        <p>Images, videos, documents, archives</p>
+                    </div>
+                    <div class="feature-item">
+                        <span class="feature-icon">📱</span>
+                        <h4>Cross Platform</h4>
+                        <p>Works on any device and browser</p>
+                    </div>
+                    <div class="feature-item">
+                        <span class="feature-icon">⚡</span>
+                        <h4>Fast Transfer</h4>
+                        <p>Optimized for performance</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer class="footer">
+            <p>© 2024 Realtime File Transfer. Built with ❤️ for seamless sharing.</p>
+        </footer>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/js/index.js"></script>
+</body>
+</html>

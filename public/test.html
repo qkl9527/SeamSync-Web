@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Realtime File Transfer - Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        .pass { background: #d4edda; color: #155724; }
+        .fail { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        .warning { background: #fff3cd; color: #856404; }
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .feature {
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #007bff;
+        }
+        .browser-support {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .browser {
+            padding: 8px 12px;
+            border-radius: 5px;
+            background: #e9ecef;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Realtime File Transfer - Compatibility Test</h1>
+
+    <div class="test-section">
+        <h2>📋 Browser Information</h2>
+        <div id="browser-info"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>🔧 Feature Tests</h2>
+        <div id="feature-tests"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>✨ Supported Features</h2>
+        <div class="features">
+            <div class="feature">
+                <h3>🌐 Cross-Platform</h3>
+                <p>Works on desktop, tablet, and mobile devices</p>
+            </div>
+            <div class="feature">
+                <h3>📁 File Support</h3>
+                <p>Supports all file types: images, videos, documents, archives</p>
+            </div>
+            <div class="feature">
+                <h3>🔄 Real-time Sync</h3>
+                <p>Instant file list updates across all connected clients</p>
+            </div>
+            <div class="feature">
+                <h3>📊 Progress Tracking</h3>
+                <p>Real-time upload progress with percentage display</p>
+            </div>
+            <div class="feature">
+                <h3>📱 Touch Friendly</h3>
+                <p>Optimized for touch interactions on mobile devices</p>
+            </div>
+            <div class="feature">
+                <h3>🎨 Responsive Design</h3>
+                <p>Adapts to different screen sizes and orientations</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>🌐 Browser Support</h2>
+        <div class="browser-support">
+            <span class="browser">✅ Chrome 60+</span>
+            <span class="browser">✅ Firefox 55+</span>
+            <span class="browser">✅ Safari 11+</span>
+            <span class="browser">✅ Edge 79+</span>
+            <span class="browser">⚠️ IE 11 (Limited)</span>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>🚀 Quick Start</h2>
+        <ol>
+            <li>访问主页创建新的传输房间</li>
+            <li>复制房间链接分享给其他人</li>
+            <li>所有用户加入房间后即可开始传输文件</li>
+            <li>支持拖拽上传和点击选择文件</li>
+            <li>实时查看上传进度和文件列表</li>
+        </ol>
+    </div>
+
+    <script>
+        // Browser detection and feature testing
+        function getBrowserInfo() {
+            const ua = navigator.userAgent;
+            const info = {
+                userAgent: ua,
+                platform: navigator.platform,
+                language: navigator.language,
+                cookiesEnabled: navigator.cookieEnabled,
+                online: navigator.onLine
+            };
+
+            // Browser detection
+            if (ua.includes('Chrome')) {
+                info.browser = 'Chrome';
+                info.version = ua.match(/Chrome\/(\d+)/)?.[1];
+            } else if (ua.includes('Firefox')) {
+                info.browser = 'Firefox';
+                info.version = ua.match(/Firefox\/(\d+)/)?.[1];
+            } else if (ua.includes('Safari')) {
+                info.browser = 'Safari';
+                info.version = ua.match(/Version\/(\d+)/)?.[1];
+            } else if (ua.includes('Edge')) {
+                info.browser = 'Edge';
+                info.version = ua.match(/Edg\/(\d+)/)?.[1];
+            } else {
+                info.browser = 'Unknown';
+                info.version = 'Unknown';
+            }
+
+            return info;
+        }
+
+        // Feature tests
+        function testFeatures() {
+            const features = {
+                webSocket: 'WebSocket' in window,
+                fetch: 'fetch' in window,
+                fileAPI: 'FileReader' in window && 'File' in window,
+                dragAndDrop: 'draggable' in document.createElement('div'),
+                localStorage: 'localStorage' in window,
+                notifications: 'Notification' in window,
+                touchEvents: 'ontouchstart' in window,
+                clipboard: navigator.clipboard !== undefined || 'clipboardData' in navigator,
+                canvas: 'CanvasRenderingContext2D' in window,
+                svg: !!document.createElementNS && !!document.createElementNS('http://www.w3.org/2000/svg', 'svg').createSVGRect
+            };
+
+            return features;
+        }
+
+        // Generate browser info
+        function renderBrowserInfo() {
+            const info = getBrowserInfo();
+            const container = document.getElementById('browser-info');
+
+            container.innerHTML = `
+                <div class="test-result info">
+                    <strong>Browser:</strong> ${info.browser} ${info.version}<br>
+                    <strong>Platform:</strong> ${info.platform}<br>
+                    <strong>Language:</strong> ${info.language}<br>
+                    <strong>User Agent:</strong> ${info.userAgent}<br>
+                    <strong>Cookies Enabled:</strong> ${info.cookiesEnabled}<br>
+                    <strong>Online:</strong> ${info.online}
+                </div>
+            `;
+        }
+
+        // Run feature tests
+        function runFeatureTests() {
+            const features = testFeatures();
+            const container = document.getElementById('feature-tests');
+            let html = '';
+
+            Object.keys(features).forEach(feature => {
+                const status = features[feature] ? 'pass' : 'fail';
+                const icon = features[feature] ? '✅' : '❌';
+                html += `
+                    <div class="test-result ${status}">
+                        ${icon} <strong>${feature}:</strong> ${features[feature] ? 'Supported' : 'Not Supported'}
+                    </div>
+                `;
+            });
+
+            // Overall compatibility
+            const supportedCount = Object.values(features).filter(v => v).length;
+            const totalCount = Object.keys(features).length;
+            const compatibility = Math.round((supportedCount / totalCount) * 100);
+
+            html += `
+                <div class="test-result ${compatibility >= 80 ? 'pass' : compatibility >= 60 ? 'warning' : 'fail'}">
+                    📊 <strong>Overall Compatibility:</strong> ${compatibility}% (${supportedCount}/${totalCount} features supported)
+                </div>
+            `;
+
+            container.innerHTML = html;
+
+            // Recommendations
+            if (compatibility < 80) {
+                html += `
+                    <div class="test-result warning">
+                        ⚠️ <strong>Recommendations:</strong><br>
+                        - Update your browser to the latest version<br>
+                        - Enable JavaScript if disabled<br>
+                        - Check your internet connection
+                    </div>
+                `;
+                container.innerHTML = html;
+            }
+        }
+
+        // Initialize tests
+        document.addEventListener('DOMContentLoaded', () => {
+            renderBrowserInfo();
+            runFeatureTests();
+        });
+    </script>
+</body>
+</html>
