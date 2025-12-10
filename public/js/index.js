@@ -15,6 +15,9 @@ const shareEmail = document.getElementById('shareEmail');
 const shareWhatsApp = document.getElementById('shareWhatsApp');
 const shareTelegram = document.getElementById('shareTelegram');
 const shareCopy = document.getElementById('shareCopy');
+const themeToggle = document.getElementById('themeToggle');
+const themeIcon = document.getElementById('themeIcon');
+const themeText = document.getElementById('themeText');
 
 // Create new room
 createRoomBtn.addEventListener('click', async () => {
@@ -225,3 +228,73 @@ function checkBrowserCompatibility() {
 
 // Check compatibility on load
 checkBrowserCompatibility();
+
+// 主题切换相关函数
+function initTheme() {
+    // 检查本地存储的主题偏好
+    const savedTheme = localStorage.getItem('theme');
+    const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+    if (savedTheme === 'dark' || (savedTheme === null && prefersDark)) {
+        setTheme('dark', false);
+    } else {
+        setTheme('light', false);
+    }
+}
+
+function toggleTheme() {
+    const currentTheme = document.documentElement.getAttribute('data-theme');
+    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    setTheme(newTheme, true);
+}
+
+function setTheme(theme, savePreference = true) {
+    if (theme === 'dark') {
+        document.documentElement.setAttribute('data-theme', 'dark');
+        document.documentElement.style.colorScheme = 'dark';
+        if (themeIcon) themeIcon.textContent = '☀️';
+        if (themeText) themeText.textContent = 'Light';
+        if (themeToggle) themeToggle.title = 'Switch to Light Mode';
+    } else {
+        document.documentElement.setAttribute('data-theme', 'light');
+        document.documentElement.style.colorScheme = 'light';
+        if (themeIcon) themeIcon.textContent = '🌙';
+        if (themeText) themeText.textContent = 'Dark';
+        if (themeToggle) themeToggle.title = 'Switch to Dark Mode';
+    }
+
+    // 保存到本地存储
+    if (savePreference) {
+        localStorage.setItem('theme', theme);
+        showToast(`Switched to ${theme === 'dark' ? 'Dark' : 'Light'} mode`, 'info');
+    }
+}
+
+// 初始化主题
+initTheme();
+
+// 添加事件监听
+themeToggle.addEventListener('click', toggleTheme);
+
+// 监听系统主题变化
+if (window.matchMedia) {
+    const darkModeQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    darkModeQuery.addEventListener('change', (e) => {
+        // 如果用户已经手动选择了主题，则不自动跟随系统
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme === null) {
+            // 用户未手动选择，跟随系统
+            setTheme(e.matches ? 'dark' : 'light', false);
+        }
+    });
+}
+
+// 检测并应用主题
+(function detectAndApplyTheme() {
+    // 检查是否已经有data-theme属性
+    if (!document.documentElement.hasAttribute('data-theme')) {
+        // 如果没有，检查系统偏好
+        const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        document.documentElement.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
+    }
+})();

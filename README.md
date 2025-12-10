@@ -1,4 +1,4 @@
-# Realtime File Transfer
+# Realtime File Transfer - SeamSync-Web
 
 一个基于Web的实时文件传输系统，支持多人同时在线传输各种类型的文件。
 
@@ -18,7 +18,7 @@
 - **后端**：Node.js + Express + Socket.IO
 - **前端**：原生HTML/CSS/JavaScript
 - **实时通信**：WebSocket
-- **文件上传**：Multer
+- **文件上传**：formData + XMLHttpRequest
 
 ## 📋 粘贴板功能
 
@@ -165,12 +165,10 @@ npm start
 
 ## 🔮 未来计划
 
-- [ ] 支持文件预览（图片、PDF等）
-- [ ] 添加文件夹上传功能
-- [ ] 支持断点续传
-- [ ] 实现文件加密传输
-- [ ] 添加用户认证
+- [ ] 房间记录存档（计划采用 duckdb/sqlite3）
 - [ ] 支持云存储（AWS S3等）
+- [ ] 添加用户认证 或 简单密码
+- [ ] 重构React版本
 
 ## 🤝 贡献
 
