@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Theme Toggle Test</title>
+    <link rel="stylesheet" href="/css/apple-style.css">
+    <style>
+        body {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .test-card {
+            padding: 40px;
+            text-align: center;
+        }
+        .test-card h2 {
+            margin-bottom: 24px;
+            font-size: 2rem;
+        }
+        .test-card p {
+            margin: 16px 0;
+            font-size: 1.1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card test-card">
+            <h2>🎨 主题切换测试</h2>
+            <p>当前主题：<span id="currentTheme">检测中...</span></p>
+            <p>系统偏好：<span id="systemPreference">检测中...</span></p>
+            <p>本地存储：<span id="localStorageTheme">检测中...</span></p>
+
+            <div style="margin-top: 24px;">
+                <button id="themeToggle" class="btn-primary">
+                    <span id="themeIcon">🌙</span>
+                    <span id="themeText">切换主题</span>
+                </button>
+            </div>
+
+            <div style="margin-top: 24px;">
+                <button class="btn-secondary" onclick="testNotification()">发送测试通知</button>
+                <button class="btn-secondary" onclick="clearStorage()">清除本地存储</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 复制room.js的主题切换逻辑
+        const themeToggle = document.getElementById('themeToggle');
+        const themeIcon = document.getElementById('themeIcon');
+        const themeText = document.getElementById('themeText');
+        const currentThemeSpan = document.getElementById('currentTheme');
+        const systemPreferenceSpan = document.getElementById('systemPreference');
+        const localStorageThemeSpan = document.getElementById('localStorageTheme');
+
+        function updateThemeDisplay() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            const savedTheme = localStorage.getItem('theme');
+
+            currentThemeSpan.textContent = currentTheme === 'dark' ? '暗色' : '亮色';
+            systemPreferenceSpan.textContent = prefersDark ? '暗色' : '亮色';
+            localStorageThemeSpan.textContent = savedTheme ? (savedTheme === 'dark' ? '暗色' : '亮色') : '未设置';
+
+            themeIcon.textContent = currentTheme === 'dark' ? '☀️' : '🌙';
+            themeText.textContent = currentTheme === 'dark' ? 'Light' : 'Dark';
+        }
+
+        function setTheme(theme, savePreference = true) {
+            if (theme === 'dark') {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                document.documentElement.style.colorScheme = 'dark';
+                if (themeIcon) themeIcon.textContent = '☀️';
+                if (themeText) themeText.textContent = 'Light';
+                if (themeToggle) themeToggle.title = 'Switch to Light Mode';
+            } else {
+                document.documentElement.setAttribute('data-theme', 'light');
+                document.documentElement.style.colorScheme = 'light';
+                if (themeIcon) themeIcon.textContent = '🌙';
+                if (themeText) themeText.textContent = 'Dark';
+                if (themeToggle) themeToggle.title = 'Switch to Dark Mode';
+            }
+
+            if (savePreference) {
+                localStorage.setItem('theme', theme);
+                showToast(`切换到 ${theme === 'dark' ? '暗色' : '亮色'} 模式`, 'info');
+            }
+
+            updateThemeDisplay();
+        }
+
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            setTheme(newTheme, true);
+        }
+
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.className = `notification ${type}`;
+            toast.textContent = message;
+
+            const container = document.getElementById('notifications') || document.body;
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateX(100%)';
+                setTimeout(() => {
+                    toast.remove();
+                }, 300);
+            }, 3000);
+        }
+
+        function testNotification() {
+            showToast('🎨 主题切换测试通知', 'success');
+        }
+
+        function clearStorage() {
+            localStorage.removeItem('theme');
+            showToast('已清除本地存储的主题偏好', 'info');
+            updateThemeDisplay();
+        }
+
+        themeToggle.addEventListener('click', toggleTheme);
+
+        // 初始化
+        (function init() {
+            const savedTheme = localStorage.getItem('theme');
+            const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+            if (savedTheme === 'dark') {
+                setTheme('dark', false);
+            } else if (savedTheme === 'light') {
+                setTheme('light', false);
+            } else {
+                setTheme(prefersDark ? 'dark' : 'light', false);
+            }
+
+            updateThemeDisplay();
+        })();
+
+        // 监听系统主题变化
+        if (window.matchMedia) {
+            const darkModeQuery = window.matchMedia('(prefers-color-scheme: dark)');
+            darkModeQuery.addEventListener('change', (e) => {
+                const savedTheme = localStorage.getItem('theme');
+                if (savedTheme === null) {
+                    setTheme(e.matches ? 'dark' : 'light', false);
+                    updateThemeDisplay();
+                }
+            });
+        }
+    </script>
+</body>
+</html>

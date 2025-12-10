@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=0.5, maximum-scale=1.0, user-scalable=no">
+    <title>Mobile Paste Optimization Test</title>
+    <link rel="stylesheet" href="/css/apple-style.css">
+    <style>
+        /* 额外的移动端测试样式 */
+        @media (max-width: 768px) {
+            body {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            }
+
+            .test-container {
+                max-width: 100%;
+                margin: 20px auto;
+                padding: 20px;
+            }
+
+            .test-section {
+                background: rgba(255, 255, 255, 0.98);
+                border-radius: 16px;
+                padding: 20px;
+                margin-bottom: 20px;
+                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+                border: 2px solid rgba(255, 255, 255, 0.3);
+            }
+
+            .test-section h3 {
+                margin: 0 0 15px 0;
+                color: #1d1d1f;
+                font-size: 18px;
+                font-weight: 800;
+                text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
+            }
+
+            .test-buttons {
+                display: flex;
+                gap: 10px;
+                flex-wrap: wrap;
+                margin-bottom: 15px;
+            }
+
+            .test-btn {
+                flex: 1;
+                min-width: 140px;
+                padding: 14px 18px;
+                border: none;
+                border-radius: 14px;
+                font-size: 15px;
+                font-weight: 800;
+                cursor: pointer;
+                transition: all 0.2s ease;
+                box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+                text-transform: uppercase;
+                letter-spacing: 0.8px;
+                border: 3px solid rgba(255, 255, 255, 0.5);
+            }
+
+            .test-btn.primary {
+                background: linear-gradient(180deg, #007AFF, #0056CC);
+                color: white;
+                border: 3px solid rgba(255, 255, 255, 0.5);
+            }
+
+            .test-btn.success {
+                background: linear-gradient(180deg, #34C759, #2CA047);
+                color: white;
+                border: 3px solid rgba(255, 255, 255, 0.5);
+            }
+
+            .test-btn.error {
+                background: linear-gradient(180deg, #FF3B30, #CC0000);
+                color: white;
+                border: 3px solid rgba(255, 255, 255, 0.5);
+            }
+
+            .test-btn.warning {
+                background: linear-gradient(180deg, #FF9500, #CC7000);
+                color: white;
+                border: 3px solid rgba(255, 255, 255, 0.5);
+            }
+
+            .test-btn:hover {
+                transform: translateY(-3px);
+                box-shadow: 0 10px 24px rgba(0, 113, 227, 0.4);
+            }
+
+            .test-content {
+                background: rgba(245, 245, 247, 0.95);
+                border-radius: 14px;
+                padding: 16px;
+                border: 2px solid rgba(60, 60, 67, 0.25);
+            }
+
+            .test-content p {
+                margin: 0 0 10px 0;
+                line-height: 1.7;
+                color: #333;
+                font-size: 15px;
+                font-weight: 600;
+            }
+
+            .test-content p:last-child {
+                margin-bottom: 0;
+            }
+
+            /* 确保通知容器可见 */
+            .notifications {
+                position: static !important;
+                margin-bottom: 20px;
+            }
+
+            .mobile-notifications {
+                position: fixed !important;
+                bottom: 20px !important;
+                right: 20px !important;
+                left: 20px !important;
+                z-index: 9999 !important;
+            }
+
+            .mobile-notifications .notification {
+                max-width: calc(100vw - 40px) !important;
+                margin: 0 auto !important;
+                border-width: 2px !important;
+                font-weight: 700 !important;
+            }
+        }
+
+        /* PC端保持原样 */
+        @media (min-width: 769px) {
+            .test-container {
+                max-width: 800px;
+                margin: 40px auto;
+                padding: 40px;
+                background: white;
+                border-radius: 20px;
+                box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+            }
+
+            .test-section {
+                margin-bottom: 30px;
+                padding: 30px;
+            }
+
+            .test-section h3 {
+                font-size: 20px;
+            }
+        }
+
+        /* 暗色模式测试样式 */
+        @media (prefers-color-scheme: dark) {
+            .test-section {
+                background: rgba(28, 28, 30, 0.98);
+                border: 2px solid rgba(235, 235, 245, 0.15);
+            }
+
+            .test-section h3 {
+                color: #ffffff;
+                text-shadow: 0 1px 0 rgba(0, 0, 0, 0.3);
+            }
+
+            .test-content {
+                background: rgba(44, 44, 46, 0.95);
+                border: 2px solid rgba(80, 80, 84, 0.3);
+            }
+
+            .test-content p {
+                color: #e5e5e7;
+            }
+
+            body {
+                background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1 style="text-align: center; margin-bottom: 30px; color: white; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">
+            📱 移动端提示交互优化测试
+        </h1>
+
+        <!-- 通知区域 -->
+        <div id="notifications" class="notifications"></div>
+
+        <!-- 测试内容区域 -->
+        <div class="test-section">
+            <h3>📋 测试内容区域</h3>
+            <div class="test-content">
+                <p>这个区域模拟主要的页面内容。在移动端，提示不应该遮挡这些内容。</p>
+                <p>文件列表...</p>
+                <p>上传按钮...</p>
+                <p>其他重要信息...</p>
+            </div>
+        </div>
+
+        <!-- 测试按钮 -->
+        <div class="test-section">
+            <h3>🎯 测试不同类型的提示</h3>
+            <div class="test-buttons">
+                <button class="test-btn success" onclick="testNotification('success')">
+                    ✅ 成功提示
+                </button>
+                <button class="test-btn error" onclick="testNotification('error')">
+                    ❌ 错误提示
+                </button>
+                <button class="test-btn warning" onclick="testNotification('warning')">
+                    ⚠️ 警告提示
+                </button>
+                <button class="test-btn primary" onclick="testNotification('info')">
+                    ℹ️ 信息提示
+                </button>
+            </div>
+
+            <div class="test-buttons">
+                <button class="test-btn success" onclick="testMobilePaste()">
+                    📋 测试粘贴提示
+                </button>
+                <button class="test-btn primary" onclick="testMultipleNotifications()">
+                    🚀 多个提示
+                </button>
+                <button class="test-btn warning" onclick="clearAllNotifications()">
+                    🗑️ 清除所有
+                </button>
+            </div>
+        </div>
+
+        <!-- 说明 -->
+        <div class="test-section">
+            <h3>📖 优化说明</h3>
+            <div class="test-content">
+                <p><strong>移动端优化：</strong></p>
+                <p>• 提示不会遮挡主要内容</p>
+                <p>• 底部浮动提示，4秒后自动消失</p>
+                <p>• 粘贴提示非侵入式，5秒自动消失</p>
+                <p>• 增强对比度，白天黑夜都清晰可见</p>
+                <p><strong>PC端保持：</strong></p>
+                <p>• 右上角固定显示，不影响内容</p>
+                <p>• 3秒后自动消失</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 移动端检测
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+        // Toast 通知函数（与room.js保持一致）
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.className = `notification ${type}`;
+
+            // 移动端使用更长的显示时间
+            const displayTime = isMobile ? 4000 : 3000;
+
+            // 添加消息内容
+            toast.textContent = message;
+
+            // 根据设备类型选择不同的容器
+            let container;
+            if (isMobile) {
+                // 移动端使用底部固定通知
+                container = document.querySelector('.mobile-notifications');
+                if (!container) {
+                    container = document.createElement('div');
+                    container.className = 'mobile-notifications';
+                    document.body.appendChild(container);
+                }
+            } else {
+                // 桌面端使用右上角通知
+                container = document.getElementById('notifications');
+            }
+
+            // 添加到容器
+            if (container) {
+                container.appendChild(toast);
+            } else {
+                document.body.appendChild(toast);
+            }
+
+            // 添加显示动画
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = isMobile ? 'translateY(100%)' : 'translateX(100%)';
+                setTimeout(() => {
+                    toast.remove();
+                    // 如果是移动端且容器为空，移除容器
+                    if (isMobile && container && container.parentElement && container.children.length === 0) {
+                        container.remove();
+                    }
+                }, 300);
+            }, displayTime);
+        }
+
+        // 测试通知
+        function testNotification(type) {
+            const messages = {
+                success: '✅ 文件上传成功！',
+                error: '❌ 上传失败，请重试',
+                warning: '⚠️ 网络连接不稳定',
+                info: 'ℹ️ 检测到新版本可用'
+            };
+
+            showToast(messages[type], type);
+        }
+
+        // 测试粘贴提示
+        function testMobilePaste() {
+            const notification = document.createElement('div');
+            notification.className = 'mobile-paste-notice';
+            const sampleText = '这是一段测试文本，用于模拟从剪贴板粘贴的内容。在移动端，这种提示不应该遮挡页面的主要内容...';
+            notification.innerHTML = `
+                <div class="mobile-paste-content">
+                    <div class="mobile-paste-icon">📋</div>
+                    <div class="mobile-paste-text">
+                        <div class="mobile-paste-title">📋 Paste Available</div>
+                        <div class="mobile-paste-preview">${escapeHtml(sampleText.substring(0, 50))}...</div>
+                    </div>
+                    <div class="mobile-paste-actions">
+                        <button class="btn-paste-yes">✅ Paste</button>
+                        <button class="btn-paste-no">❌ No</button>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(notification);
+
+            // Animate in
+            setTimeout(() => {
+                notification.classList.add('show');
+            }, 100);
+
+            // Add event listeners
+            const yesBtn = notification.querySelector('.btn-paste-yes');
+            const noBtn = notification.querySelector('.btn-paste-no');
+
+            yesBtn.addEventListener('click', () => {
+                showToast('✅ 文本已粘贴', 'success');
+                notification.classList.remove('show');
+                setTimeout(() => {
+                    document.body.removeChild(notification);
+                }, 300);
+            });
+
+            noBtn.addEventListener('click', () => {
+                notification.classList.remove('show');
+                setTimeout(() => {
+                    document.body.removeChild(notification);
+                }, 300);
+            });
+
+            // Auto-hide after 5 seconds
+            setTimeout(() => {
+                if (notification.parentElement) {
+                    notification.classList.remove('show');
+                    setTimeout(() => {
+                        document.body.removeChild(notification);
+                    }, 300);
+                }
+            }, 5000);
+        }
+
+        // 测试多个通知
+        function testMultipleNotifications() {
+            const messages = [
+                { text: '✅ 第一个通知', type: 'success' },
+                { text: '⚠️ 第二个通知', type: 'warning' },
+                { text: 'ℹ️ 第三个通知', type: 'info' }
+            ];
+
+            messages.forEach((msg, index) => {
+                setTimeout(() => {
+                    showToast(msg.text, msg.type);
+                }, index * 500);
+            });
+        }
+
+        // 清除所有通知
+        function clearAllNotifications() {
+            // 清除普通的通知
+            const notifications = document.querySelectorAll('.notification');
+            notifications.forEach(notification => {
+                notification.style.opacity = '0';
+                notification.style.transform = isMobile ? 'translateY(100%)' : 'translateX(100%)';
+                setTimeout(() => {
+                    notification.remove();
+                }, 300);
+            });
+
+            // 清除粘贴通知
+            const pasteNotices = document.querySelectorAll('.mobile-paste-notice');
+            pasteNotices.forEach(notice => {
+                notice.classList.remove('show');
+                setTimeout(() => {
+                    notice.remove();
+                }, 300);
+            });
+
+            // 清除容器
+            const mobileContainer = document.querySelector('.mobile-notifications');
+            if (mobileContainer) {
+                mobileContainer.remove();
+            }
+
+            showToast('🗑️ 所有通知已清除', 'info');
+        }
+
+        // HTML转义函数
+        function escapeHtml(text) {
+            return text
+                .replace(/&/g, '&')
+                .replace(/</g, '<')
+                .replace(/>/g, '>')
+                .replace(/"/g, '"')
+                .replace(/'/g, "'");
+        }
+
+        // 页面加载提示
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                showToast(isMobile ? '📱 您正在使用移动设备' : '💻 您正在使用桌面设备', isMobile ? 'info' : 'success');
+            }, 500);
+        });
+    </script>
+</body>
+</html>

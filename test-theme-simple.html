@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Theme Toggle Test - Simple</title>
+    <link rel="stylesheet" href="/css/apple-style.css">
+    <style>
+        body {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.3s ease;
+        }
+        .test-container {
+            padding: 40px;
+            text-align: center;
+            transition: background 0.3s ease, color 0.3s ease;
+        }
+        .test-container h2 {
+            margin-bottom: 24px;
+            font-size: 2rem;
+            transition: color 0.3s ease;
+        }
+        .test-container p {
+            margin: 16px 0;
+            font-size: 1.1rem;
+            transition: color 0.3s ease;
+        }
+        .status-box {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 12px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-secondary);
+            transition: background 0.3s ease, border-color 0.3s ease;
+        }
+        .btn-row {
+            margin-top: 30px;
+        }
+        .btn-row button {
+            margin: 0 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card test-container">
+            <h2>🎨 主题切换测试</h2>
+
+            <div class="status-box">
+                <p>当前主题：<strong id="currentTheme">检测中...</strong></p>
+                <p>系统偏好：<strong id="systemPreference">检测中...</strong></p>
+                <p>本地存储：<strong id="localStorageTheme">检测中...</strong></p>
+            </div>
+
+            <div class="btn-row">
+                <button id="themeToggle" class="btn-primary">
+                    <span id="themeIcon">🌙</span>
+                    <span id="themeText">切换主题</span>
+                </button>
+                <button class="btn-secondary" onclick="testNotification()">
+                    📢 测试通知
+                </button>
+                <button class="btn-secondary" onclick="clearStorage()">
+                    🗑️ 清除存储
+                </button>
+            </div>
+
+            <div class="status-box" style="margin-top: 30px;">
+                <p>💡 提示：</p>
+                <p>- 点击"切换主题"按钮查看效果</p>
+                <p>- 检查页面背景、文字和按钮颜色变化</p>
+                <p>- 查看浏览器控制台查看data-theme属性</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 复制room.js的主题切换逻辑
+        const themeToggle = document.getElementById('themeToggle');
+        const themeIcon = document.getElementById('themeIcon');
+        const themeText = document.getElementById('themeText');
+        const currentThemeSpan = document.getElementById('currentTheme');
+        const systemPreferenceSpan = document.getElementById('systemPreference');
+        const localStorageThemeSpan = document.getElementById('localStorageTheme');
+
+        function updateThemeDisplay() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            const savedTheme = localStorage.getItem('theme');
+
+            currentThemeSpan.textContent = currentTheme === 'dark' ? '🌙 暗色模式' : '☀️ 亮色模式';
+            systemPreferenceSpan.textContent = prefersDark ? '🌙 暗色' : '☀️ 亮色';
+            localStorageThemeSpan.textContent = savedTheme ? (savedTheme === 'dark' ? '🌙 暗色' : '☀️ 亮色') : '未设置';
+
+            themeIcon.textContent = currentTheme === 'dark' ? '☀️' : '🌙';
+            themeText.textContent = currentTheme === 'dark' ? 'Light' : 'Dark';
+        }
+
+        function setTheme(theme, savePreference = true) {
+            if (theme === 'dark') {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                document.documentElement.style.colorScheme = 'dark';
+                if (themeIcon) themeIcon.textContent = '☀️';
+                if (themeText) themeText.textContent = 'Light';
+                if (themeToggle) themeToggle.title = 'Switch to Light Mode';
+            } else {
+                document.documentElement.setAttribute('data-theme', 'light');
+                document.documentElement.style.colorScheme = 'light';
+                if (themeIcon) themeIcon.textContent = '🌙';
+                if (themeText) themeText.textContent = 'Dark';
+                if (themeToggle) themeToggle.title = 'Switch to Dark Mode';
+            }
+
+            if (savePreference) {
+                localStorage.setItem('theme', theme);
+                showToast(`切换到 ${theme === 'dark' ? '🌙 暗色' : '☀️ 亮色'} 模式`, 'success');
+            }
+
+            updateThemeDisplay();
+            console.log('✅ 主题已切换:', document.documentElement.getAttribute('data-theme'));
+        }
+
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            setTheme(newTheme, true);
+        }
+
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.className = `notification ${type}`;
+            toast.textContent = message;
+
+            const container = document.getElementById('notifications') || document.body;
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateX(100%)';
+                setTimeout(() => {
+                    toast.remove();
+                }, 300);
+            }, 3000);
+        }
+
+        function testNotification() {
+            showToast('🎨 主题切换测试通知', 'success');
+        }
+
+        function clearStorage() {
+            localStorage.removeItem('theme');
+            showToast('已清除本地存储的主题偏好', 'info');
+            updateThemeDisplay();
+        }
+
+        themeToggle.addEventListener('click', toggleTheme);
+
+        // 初始化
+        (function init() {
+            const savedTheme = localStorage.getItem('theme');
+            const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+            if (savedTheme === 'dark') {
+                setTheme('dark', false);
+            } else if (savedTheme === 'light') {
+                setTheme('light', false);
+            } else {
+                setTheme(prefersDark ? 'dark' : 'light', false);
+            }
+
+            updateThemeDisplay();
+        })();
+
+        // 监听系统主题变化
+        if (window.matchMedia) {
+            const darkModeQuery = window.matchMedia('(prefers-color-scheme: dark)');
+            darkModeQuery.addEventListener('change', (e) => {
+                const savedTheme = localStorage.getItem('theme');
+                if (savedTheme === null) {
+                    setTheme(e.matches ? 'dark' : 'light', false);
+                    updateThemeDisplay();
+                }
+            });
+        }
+    </script>
+</body>
+</html>
