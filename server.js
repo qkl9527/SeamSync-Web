@@ -105,10 +105,10 @@ io.on('connection', (socket) => {
 
   // Handle file upload start
   socket.on('file-upload-start', (fileData) => {
-    const { roomId, file } = fileData;
+    const { roomId, fileId, file } = fileData;
 
     // Create file entry
-    const fileId = uuidv4();
+    // const fileId = uuidv4();
     const fileEntry = {
       id: fileId,
       name: file.name,
@@ -134,50 +134,38 @@ io.on('connection', (socket) => {
       progress: 0
     });
 
-    // Notify all users in the room about new file
-    io.to(roomId).emit('file-added', fileEntry);
-
     console.log(`File upload started: ${file.name} in room ${roomId}`);
-  });
-
-  // Handle file upload progress
-  socket.on('file-upload-progress', (progressData) => {
-    const { fileId, progress } = progressData;
-
-    if (fileUploads.has(fileId)) {
-      const upload = fileUploads.get(fileId);
-      upload.progress = progress;
-
-      // Update file entry
-      if (upload.fileEntry) {
-        upload.fileEntry.progress = progress;
-      }
-
-      // Notify room about progress
-      io.to(upload.roomId).emit('file-progress', {
-        fileId: fileId,
-        progress: progress
-      });
-    }
   });
 
   // Handle file upload complete
   socket.on('file-upload-complete', (completeData) => {
+    console.log("completeData:", completeData);
+
     const { fileId, fileUrl } = completeData;
 
+    console.log("completeData:", fileUploads.has(fileId));
+    console.log("completeData:", fileUploads);
     if (fileUploads.has(fileId)) {
       const upload = fileUploads.get(fileId);
       upload.fileEntry.status = 'completed';
       upload.fileEntry.url = fileUrl;
       upload.fileEntry.progress = 100;
 
-      // Notify all users in the room
+      // Notify all users in the room about file completion
+      console.log(`📤 Broadcasting file-completed event for: ${upload.fileEntry.name}`);
+      console.log(`📤 File ID: ${upload.fileEntry.id}`);
+      console.log(`📤 Room: ${upload.roomId}`);
+      console.log(`📤 URL: ${fileUrl}`);
+
       io.to(upload.roomId).emit('file-completed', upload.fileEntry);
 
       // Clean up
       fileUploads.delete(fileId);
 
       console.log(`File upload completed: ${upload.fileEntry.name}`);
+      console.log(`  File ID: ${upload.fileEntry.id}`);
+      console.log(`  URL: ${fileUrl}`);
+      console.log(`  Room: ${upload.roomId}`);
     }
   });
 

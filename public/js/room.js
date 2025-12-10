@@ -65,7 +65,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setTimeout(refreshFileList, 1000);
 
     // Initialize QR Code elements and setup after DOM is ready
-    initializeQRCode();
+    setTimeout(()=>{initializeQRCode();}, 3000);
 });
 
 // Setup event listeners
@@ -152,28 +152,46 @@ function setupEventListeners() {
         showToast('User left the room', 'info');
     });
 
-    socket.on('file-added', (fileData) => {
+    socket.on('file-completed', (fileData) => {
+        console.log('✅ socket file-completed received:', fileData.name, 'ID:', fileData.id, 'Status:', fileData.status);
+        console.log('✅ socket file-completed URL:', fileData.url);
+        console.log('✅ socket file-completed uploadedBy:', fileData.uploadedBy);
+        console.log('✅ socket file-completed socket.id:', socket.id);
+
         // Check if this file was uploaded by the current user
-        // If so, don't add it again (already added in uploadFile)
         if (fileData.uploadedBy === socket.id) {
-            console.log('Skipping file-added event for own upload:', fileData.name);
-            return;
+            console.log('⏭️ Skipping own upload event for:', fileData.name);
+            return; // 跳过自己的事件，因为已经在uploadFile中处理了
         }
 
+        console.log('➕ Adding file for other user:', fileData.name);
+
+        // Add the file for other users
         addFileToList(fileData);
         showToast(`New file: ${fileData.name}`, 'info');
-    });
 
-    socket.on('file-progress', (progressData) => {
-        updateFileProgress(progressData.fileId, progressData.progress);
-    });
+        // For completed files, immediately add content preview if possible
+        // Check if the file is a text file and we need to load content
+        const type = (fileData.type || '').toLowerCase();
+        if ((type.startsWith('text/') || isTextFile(fileData.name)) && fileData.url && !fileData.textContent) {
+            // Try to load content for preview asynchronously
+            const fileElement = document.querySelector(`.file-item[data-file-id="${fileData.id}"]`);
+            if (fileElement) {
+                const textContentElement = fileElement.querySelector('.text-content');
+                if (textContentElement) {
+                    // Show loading indicator
+                    textContentElement.innerHTML = '<div class="inline-text-content">Loading content...</div>';
 
-    socket.on('file-completed', (fileData) => {
-        console.log('✅ socket file-completed received:', fileData.name);
-        console.log('✅ socket file-completed URL:', fileData.url);
-        console.log('✅ socket file-completed status:', fileData.status);
-        completeFileUpload(fileData);
-        showToast(`Upload completed: ${fileData.name}`, 'success');
+                    // Load content asynchronously
+                    loadTextContentForPreview(fileData, textContentElement, 2).then(() => {
+                        console.log('✅ Text content loaded for userB:', fileData.name);
+                    }).catch((error) => {
+                        console.error('❌ Failed to load text content for userB:', fileData.name, error);
+                        textContentElement.innerHTML = '<div class="inline-text-content">Failed to load content</div>';
+                    });
+                }
+            }
+        }
     });
 
     socket.on('file-error', (errorData) => {
@@ -226,6 +244,7 @@ async function startFileUpload(file, fileId) {
         // Notify server about upload start
         socket.emit('file-upload-start', {
             roomId: roomId,
+            fileId: fileId,
             file: {
                 name: file.name,
                 size: file.size,
@@ -233,38 +252,46 @@ async function startFileUpload(file, fileId) {
             }
         });
 
-        // Progress tracking
+        // Progress tracking - 移除progress事件发送
         xhr.upload.addEventListener('progress', (e) => {
-            if (e.lengthComputable) {
-                const progress = Math.round((e.loaded / e.total) * 100);
-                socket.emit('file-upload-progress', {
-                    fileId: fileId,
-                    progress: progress
-                });
-            }
+            // 不再发送progress事件
         });
 
         xhr.addEventListener('load', () => {
+            console.log('✅ XHR upload load event:', xhr.status, xhr.responseText);
             if (xhr.status === 200) {
-                const response = JSON.parse(xhr.responseText);
-                if (response.success) {
-                    socket.emit('file-upload-complete', {
-                        fileId: fileId,
-                        fileUrl: response.fileUrl
-                    });
-                    resolve({
-                        success: true,
-                        fileUrl: response.fileUrl
-                    });
-                } else {
+                try {
+                    const response = JSON.parse(xhr.responseText);
+                    console.log('✅ Upload response:', response);
+                    if (response.success) {
+                        console.log('✅ Upload successful for fileId:', fileId);
+                        socket.emit('file-upload-complete', {
+                            fileId: fileId,
+                            fileUrl: response.fileUrl
+                        });
+                        resolve({
+                            success: true,
+                            fileUrl: response.fileUrl
+                        });
+                    } else {
+                        console.error('❌ Upload failed (server error):', response.message);
+                        socket.emit('file-upload-error', {
+                            fileId: fileId,
+                            error: response.message || 'Upload failed'
+                        });
+                        reject(new Error(response.message || 'Upload failed'));
+                    }
+                } catch (parseError) {
+                    console.error('❌ Upload response parse error:', parseError);
                     socket.emit('file-upload-error', {
                         fileId: fileId,
-                        error: response.message || 'Upload failed'
+                        error: 'Invalid server response'
                     });
-                    reject(new Error(response.message || 'Upload failed'));
+                    reject(new Error('Invalid server response'));
                 }
             } else {
                 const error = xhr.responseText || 'HTTP Error';
+                console.error('❌ Upload HTTP error:', xhr.status, error);
                 socket.emit('file-upload-error', {
                     fileId: fileId,
                     error: error
@@ -274,6 +301,7 @@ async function startFileUpload(file, fileId) {
         });
 
         xhr.addEventListener('error', () => {
+            console.error('❌ XHR upload error for fileId:', fileId);
             socket.emit('file-upload-error', {
                 fileId: fileId,
                 error: 'Network error'
@@ -289,6 +317,10 @@ async function startFileUpload(file, fileId) {
 // Add file to list
 function addFileToList(fileData) {
     console.log('📝 addFileToList called for:', fileData.name, 'ID:', fileData.id, 'Status:', fileData.status);
+    console.log('📝 addFileToList URL:', fileData.url);
+    console.log('📝 addFileToList type:', fileData.type);
+    console.log('📝 addFileToList textContent:', fileData.textContent ? 'YES' : 'NO');
+
     currentFiles.set(fileData.id, { ...fileData });
 
     const fileElement = createFileElement(fileData);
@@ -300,82 +332,7 @@ function addFileToList(fileData) {
 
 
 // Update file progress
-function updateFileProgress(fileId, progress) {
-    const fileData = currentFiles.get(fileId);
-    if (!fileData) return;
-
-    fileData.progress = progress;
-    currentFiles.set(fileId, fileData);
-
-    const fileElement = document.querySelector(`.file-item[data-file-id="${fileId}"]`);
-    if (fileElement) {
-        const progressFill = fileElement.querySelector('.progress-fill');
-        const statusText = fileElement.querySelector('.file-status');
-
-        if (progressFill) {
-            progressFill.style.width = `${progress}%`;
-        }
-
-        if (statusText) {
-            statusText.textContent = `Uploading: ${progress}%`;
-        }
-    }
-}
-
 // Complete file upload
-function completeFileUpload(fileData) {
-    console.log('✅ completeFileUpload called for:', fileData.name, 'ID:', fileData.id);
-    console.log('✅ File URL:', fileData.url);
-    console.log('✅ File status:', fileData.status);
-
-    const existing = currentFiles.get(fileData.id);
-    if (!existing) return;
-
-    // Merge existing data with new data, ensuring status and progress are correct
-    const updatedFileData = {
-        ...existing,
-        ...fileData,
-        // Override status and progress to ensure they're correct
-        status: 'completed',
-        progress: fileData.progress || 100
-    };
-
-    currentFiles.set(fileData.id, updatedFileData);
-
-    const fileElement = document.querySelector(`.file-item[data-file-id="${fileData.id}"]`);
-    if (fileElement) {
-        fileElement.classList.remove('uploading');
-        fileElement.classList.add('completed');
-
-        const statusText = fileElement.querySelector('.file-status');
-        const downloadBtn = fileElement.querySelector('.btn-download');
-
-        if (statusText) {
-            statusText.textContent = '✅ Upload completed';
-        }
-
-        if (downloadBtn) {
-            downloadBtn.disabled = false;
-            console.log('✅ Download button enabled for:', fileData.name);
-        }
-
-        // 如果是文本文件且有预览内容，更新预览
-        const type = (fileData.type || '').toLowerCase();
-        if ((type.startsWith('text/') || isTextFile(fileData.name)) && fileData.textContent) {
-            updateInlineTextPreview(fileData.id, fileData.textContent, 2);
-        }
-
-        // 重要：如果文件卡片还没有预览内容，现在添加
-        const hasPreviewContent = fileElement.querySelector('.content-preview');
-        if (!hasPreviewContent) {
-            const contentPreview = createContentPreview(updatedFileData);
-            if (contentPreview) {
-                fileElement.appendChild(contentPreview);
-            }
-        }
-    }
-}
-
 // Show error on file
 function showErrorOnFile(fileId, error) {
     const fileElement = document.querySelector(`.file-item[data-file-id="${fileId}"]`);
@@ -473,7 +430,15 @@ function getStatusText(fileData) {
 }
 
 function generateId() {
-    return Math.random().toString(36).substr(2, 9);
+    // Fallback for older browsers
+    if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+        const array = new Uint32Array(3);
+        crypto.getRandomValues(array);
+        return Array.from(array).map(n => n.toString(36)).join('');
+    }
+
+    // Fallback method
+    return Math.random().toString(36).substr(2, 9) + Date.now().toString(36);
 }
 
 function updateFileCount() {
@@ -562,17 +527,6 @@ function getStatusText(fileData) {
     }
 }
 
-function generateId() {
-    // Fallback for older browsers
-    if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
-        const array = new Uint32Array(3);
-        crypto.getRandomValues(array);
-        return Array.from(array).map(n => n.toString(36)).join('');
-    }
-
-    // Fallback method
-    return Math.random().toString(36).substr(2, 9) + Date.now().toString(36);
-}
 
 function updateFileCount() {
     fileCount.textContent = currentFiles ? currentFiles.size : 0;
@@ -864,9 +818,6 @@ async function uploadFile(file) {
             }
         }
 
-        // Add to list
-        addFileToList(fileData);
-
         // Start upload
         const uploadPromise = startFileUpload(file, fileId);
         uploadPromises.set(fileId, uploadPromise);
@@ -875,15 +826,23 @@ async function uploadFile(file) {
             const result = await uploadPromise;
             console.log('✅ uploadPromise resolved:', result);
             if (result.success) {
-                console.log('✅ Calling completeFileUpload from uploadFile with URL:', result.fileUrl);
-                completeFileUpload({
+                console.log('✅ Upload successful for:', file.name);
+                console.log('✅ File URL:', result.fileUrl);
+
+                // Create completed file data
+                const completedFileData = {
                     ...fileData,
                     url: result.fileUrl,
+                    status: 'completed',
                     progress: 100
-                });
+                };
+
+                console.log('➕ Adding completed file for own upload:', completedFileData.name);
+                addFileToList(completedFileData);
 
                 // Update inline preview for text files
                 if (fileData.textContent && isTextFile(file.name)) {
+                    console.log('📄 Updating text preview for own upload:', file.name);
                     updateInlineTextPreview(fileId, fileData.textContent);
                 }
 
@@ -912,7 +871,7 @@ function initializeQRCode() {
     refreshQrBtn = document.getElementById('refreshQrBtn');
 
     // 现在设置 QR Code
-    setupQRCode();
+    // setupQRCode();
 }
 
 // QR Code Functions
@@ -1021,9 +980,6 @@ function createFileElement(fileData) {
             <div class="file-size">${size}</div>
             <div class="file-status">${getStatusText(fileData)}</div>
         </div>
-        <div class="progress-bar">
-            <div class="progress-fill" style="width: ${fileData.progress || 0}%"></div>
-        </div>
         <div class="file-actions">
             <button class="btn-preview" ${fileData.status === 'completed' ? '' : 'disabled'}>👁️ Preview</button>
             <button class="btn-download" ${fileData.status === 'completed' ? '' : 'disabled'}>📥 Download</button>
@@ -1072,6 +1028,15 @@ function createFileElement(fileData) {
         const contentPreview = createContentPreview(fileData);
         if (contentPreview) {
             fileItem.appendChild(contentPreview);
+        }
+    }
+    // 对于文本文件，如果已经有文本内容（用户A自己上传），即使在上传中也显示预览
+    else if (fileData.type.startsWith('text/') || isTextFile(fileData.name)) {
+        if (fileData.textContent) {
+            const contentPreview = createContentPreview(fileData);
+            if (contentPreview) {
+                fileItem.appendChild(contentPreview);
+            }
         }
     }
 
@@ -1126,20 +1091,33 @@ function createContentPreview(fileData) {
         const expandBtn = preview.querySelector('.btn-expand-text');
 
         if (copyBtn) {
-            copyBtn.onclick = () => copyTextFromFile(fileData);
+            copyBtn.onclick = () => {
+                const latestFileData = currentFiles.get(fileData.id);
+                if (latestFileData) {
+                    copyTextFromFile(latestFileData);
+                }
+            };
         }
 
         if (expandBtn) {
-            expandBtn.onclick = () => openTextPreview(fileData);
+            expandBtn.onclick = () => {
+                const latestFileData = currentFiles.get(fileData.id);
+                if (latestFileData) {
+                    openTextPreview(latestFileData);
+                }
+            };
         }
 
         // 显示前2行内容
         setTimeout(() => {
             const textContentElement = preview.querySelector('.text-content');
             if (textContentElement) {
+                // For completed files, we should have textContent already (from uploadFile)
+                // If not, try to load it from the URL
                 if (fileData.textContent) {
                     updateInlineTextPreview(fileData.id, fileData.textContent, 2);
                 } else if (fileData.url) {
+                    // Fallback: load from URL if textContent is not available (for other users)
                     loadTextContentForPreview(fileData, textContentElement, 2);
                 }
             }
@@ -1173,28 +1151,31 @@ function getOriginBadge(origin) {
     return badgeMap[origin] || '';
 }
 
-// Load text content for preview when not pre-stored
-async function loadTextContentForPreview(fileData, element) {
-    try {
-        const response = await fetch(fileData.url);
-        const text = await response.text();
-
-        // 更新文件数据
-        fileData.textContent = text;
-
-        // 显示预览
-        updateInlineTextPreview(fileData.id, text);
-    } catch (error) {
-        console.error('Error loading text content for preview:', error);
-        element.innerHTML = '<div class="inline-text-content">Error loading content</div>';
-    }
-}
-
 // Check if file is a text file
 function isTextFile(filename) {
     const textExtensions = ['.txt', '.md', '.js', '.css', '.html', '.htm', '.json', '.xml', '.csv', '.log', '.py', '.java', '.c', '.cpp', '.php', '.rb', '.go', '.rust'];
     const ext = filename.substring(filename.lastIndexOf('.')).toLowerCase();
     return textExtensions.includes(ext);
+}
+
+// Load text content for preview (for other users' files)
+async function loadTextContentForPreview(fileData, element, maxLines = 2) {
+    try {
+        const response = await fetch(fileData.url);
+        const text = await response.text();
+
+        // 更新文件数据到 currentFiles
+        const updatedFileData = { ...fileData, textContent: text };
+        currentFiles.set(fileData.id, updatedFileData);
+
+        // 更新内联预览
+        updateInlineTextPreview(fileData.id, text, maxLines);
+    } catch (error) {
+        console.error('Error loading text content for preview:', error);
+        if (element) {
+            element.innerHTML = '<div class="inline-text-content">Error loading content</div>';
+        }
+    }
 }
 
 // Open preview modal
@@ -1294,21 +1275,24 @@ function openVideoPreview(fileData) {
 
 // Open text preview modal
 function openTextPreview(fileData) {
+    // Get the latest file data from currentFiles to ensure we have the most up-to-date content
+    const latestFileData = currentFiles.get(fileData.id) || fileData;
+
     const modal = document.createElement('div');
     modal.className = 'modal';
     modal.innerHTML = `
         <div class="modal-content text-modal">
             <span class="modal-close">×</span>
             <div class="modal-header">
-                <h3>${fileData.name}</h3>
-                <p>${formatFileSize(fileData.size)}</p>
+                <h3>${latestFileData.name}</h3>
+                <p>${formatFileSize(latestFileData.size)}</p>
             </div>
             <div class="modal-body">
                 <div class="text-actions">
                     <button class="btn-copy-text-modal" title="Copy all text">📋 Copy All</button>
-                    <button class="btn-download-text" title="Download as file" onclick="window.open('${fileData.url}', '_blank')">📥 Download</button>
+                    <button class="btn-download-text" title="Download as file" onclick="window.open('${latestFileData.url}', '_blank')">📥 Download</button>
                 </div>
-                <pre class="modal-text" id="modal-text-${fileData.id}">Loading...</pre>
+                <pre class="modal-text" id="modal-text-${latestFileData.id}">Loading...</pre>
             </div>
             <div class="modal-footer">
                 <button class="btn-secondary" onclick="this.closest('.modal').remove()">Close</button>
@@ -1318,12 +1302,12 @@ function openTextPreview(fileData) {
 
     document.body.appendChild(modal);
 
-    // Load text content
-    loadTextContent(fileData, `modal-text-${fileData.id}`);
+    // Load text content using the latest file data
+    loadTextContent(latestFileData, `modal-text-${latestFileData.id}`);
 
-    // Copy button
+    // Copy button using the latest file data
     modal.querySelector('.btn-copy-text-modal').addEventListener('click', () => {
-        copyTextFromFile(fileData);
+        copyTextFromFile(latestFileData);
     });
 
     // Close modal on click
@@ -1393,7 +1377,12 @@ function updateInlineTextPreview(fileId, text, maxLines = 2) {
     // Add expand button functionality
     const expandBtn = previewElement.querySelector('.text-expand-btn');
     if (expandBtn) {
-        expandBtn.onclick = () => openTextPreview({ ...currentFiles.get(fileId), url: currentFiles.get(fileId)?.url });
+        expandBtn.onclick = () => {
+            const latestFileData = currentFiles.get(fileId);
+            if (latestFileData) {
+                openTextPreview(latestFileData);
+            }
+        };
     }
 }
 
