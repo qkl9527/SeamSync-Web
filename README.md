@@ -53,6 +53,15 @@
 - 📋 **Clipboard**：通过粘贴板粘贴
 - ✋ **Drag**：通过拖拽上传
 
+
+## 界面
+
+### 首页
+![首页](./screenshots/home.jpg)
+
+### 传输页（房间页）
+![传输页](./screenshots/room.jpg)
+
 ## 🚀 快速开始
 
 ### 1. 安装依赖

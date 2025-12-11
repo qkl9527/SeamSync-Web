@@ -12,7 +12,7 @@ const localIPs = getLocalIPs();
 const firstLocalIp = localIPs[0];
 console.log("localIPs:", localIPs, firstLocalIp);
 const CORS_ORIGIN =  `http://${firstLocalIp}:3000` || process.env.CORS_ORIGIN || "http://localhost:3000";
-console.log("CORS_ORIGIN:", CORS_ORIGIN);
+// console.log("CORS_ORIGIN:", CORS_ORIGIN);
 
 const app = express();
 const server = http.createServer(app);
