@@ -1,5 +1,5 @@
 # dir
-uploads/
+uploads/*
 !uploads/.gitkeep
 
 # claude
