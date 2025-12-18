@@ -318,11 +318,15 @@ async function startFileUpload(file, fileId) {
                         console.log('✅ Upload successful for fileId:', fileId);
                         socket.emit('file-upload-complete', {
                             fileId: fileId,
-                            fileUrl: response.fileUrl
+                            fileUrl: response.fileUrl,
+                            fileName: response.fileId,
+                            fileOriginName: response.fileName,
                         });
                         resolve({
                             success: true,
-                            fileUrl: response.fileUrl
+                            fileUrl: response.fileUrl,
+                            fileName: response.fileId,
+                            fileOriginName: response.fileName,
                         });
                     } else {
                         console.error('❌ Upload failed (server error):', response.message);
@@ -431,6 +435,25 @@ function downloadFile(fileData) {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+}
+
+// Download video file (direct download without streaming)
+function downloadVideoFile(fileData) {
+    // For video files, use the new download API endpoint
+    console.log(fileData)
+    alert(JSON.stringify(fileData))
+    const downloadUrl = `/api/download/${fileData.fileName}`;
+
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.target = '_blank'; // 确保在新窗口打开，避免页面跳转
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    console.log(`📥 Video download initiated: ${fileData.name}`);
+    showToast(`Downloading video: ${fileData.name}`, 'success');
 }
 
 // Refresh file list
@@ -898,6 +921,8 @@ async function uploadFile(file) {
                 const completedFileData = {
                     ...fileData,
                     url: result.fileUrl,
+                    fileName: result.fileName,
+                    fileOriginName: result.fileOriginName,
                     status: 'completed',
                     progress: 100
                 };
@@ -1061,6 +1086,11 @@ function createFileElement(fileData) {
     const icon = getFileIcon(fileData.type);
     const size = formatFileSize(fileData.size);
     const originBadge = fileData.origin ? getOriginBadge(fileData.origin) : '';
+    const type = (fileData.type || '').toLowerCase();
+
+    // Check if it's a video file
+    const isVideo = type.startsWith('video/');
+    const downloadButtonText = isVideo ? '📥 Download Video' : '📥 Download';
 
     fileItem.innerHTML = `
         <div class="file-header">
@@ -1071,7 +1101,8 @@ function createFileElement(fileData) {
         </div>
         <div class="file-actions">
             <button class="btn-preview" ${fileData.status === 'completed' ? '' : 'disabled'}>👁️ Preview</button>
-            <button class="btn-download" ${fileData.status === 'completed' ? '' : 'disabled'}>📥 Download</button>
+            <button class="btn-download" ${fileData.status === 'completed' ? '' : 'disabled'}>${downloadButtonText}</button>
+            ${isVideo ? '<button class="btn-download-video" title="Direct video download">🎥 Download Direct</button>' : ''}
             <button class="btn-cancel">❌ Cancel</button>
         </div>
     `;
@@ -1079,6 +1110,7 @@ function createFileElement(fileData) {
     // Add event listeners
     const previewBtn = fileItem.querySelector('.btn-preview');
     const downloadBtn = fileItem.querySelector('.btn-download');
+    const downloadVideoBtn = fileItem.querySelector('.btn-download-video');
     const cancelBtn = fileItem.querySelector('.btn-cancel');
 
     // 修复按钮点击事件 - 使用箭头函数绑定fileData
@@ -1101,12 +1133,29 @@ function createFileElement(fileData) {
 
         if (latestFileData?.status === 'completed' && latestFileData?.url) {
             console.log('📥 Calling downloadFile');
-            downloadFile(latestFileData);
+            // For video files, use the special download function
+            if (type.startsWith('video/')) {
+                downloadVideoFile(latestFileData);
+            } else {
+                downloadFile(latestFileData);
+            }
         } else {
             console.log('📥 Cannot download - status or URL missing');
             showToast('File is still uploading or URL not available', 'warning');
         }
     });
+
+    // Video direct download button
+    if (downloadVideoBtn) {
+        downloadVideoBtn.addEventListener('click', () => {
+            const latestFileData = currentFiles.get(fileData.id);
+            if (latestFileData?.status === 'completed') {
+                downloadVideoFile(latestFileData);
+            } else {
+                showToast('Video is still uploading', 'warning');
+            }
+        });
+    }
 
     cancelBtn.addEventListener('click', () => {
         cancelUpload(fileData.id);
