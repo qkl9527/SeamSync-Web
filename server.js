@@ -218,6 +218,16 @@ io.on('connection', (socket) => {
     }
   });
 
+  // Heartbeat ping from client
+  socket.on('heartbeat-ping', (data) => {
+    // Respond to heartbeat ping
+    socket.emit('heartbeat-pong', {
+      timestamp: Date.now(),
+      serverTime: new Date().toISOString(),
+      received: data.timestamp
+    });
+  });
+
   // Disconnect handling
   socket.on('disconnect', () => {
     console.log('User disconnected:', socket.id);

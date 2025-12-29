@@ -1,8 +1,26 @@
 // Room page JavaScript - File Transfer Logic
-const socket = io();
+// Configure Socket.IO with auto-reconnect
+const socket = io({
+    reconnection: true,
+    reconnectionDelay: 1000,
+    reconnectionDelayMax: 5000,
+    reconnectionAttempts: Infinity,
+    timeout: 20000
+});
+
 let roomId = null;
 let currentFiles = new Map();
 let uploadPromises = new Map();
+let isConnected = false;
+let reconnectAttempts = 0;
+let isRejoiningRoom = false;
+
+// Heartbeat detection
+let heartbeatInterval = null;
+let heartbeatTimeout = null;
+let lastHeartbeatTime = null;
+const HEARTBEAT_INTERVAL = 30000; // 30 seconds
+const HEARTBEAT_TIMEOUT = 10000; // 10 seconds timeout
 
 // Check if this is a mobile device
 const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -63,22 +81,46 @@ document.addEventListener('DOMContentLoaded', () => {
     // Check if this is a mobile device and show mobile paste section
     checkMobileDevice();
 
-    // Join room
-    socket.emit('join-room', roomId);
+    // Initialize connection status indicator
+    createConnectionStatusIndicator();
+    updateConnectionStatus(socket.connected);
+
+    // Setup WebSocket connection handlers
+    setupSocketHandlers();
+
+    // Join room (will be called when socket connects)
+    if (socket.connected) {
+        joinRoom();
+    }
 
     // Event listeners
     setupEventListeners();
 
-    // Handle page visibility
+    // Handle page visibility - check connection when page becomes visible
     document.addEventListener('visibilitychange', () => {
         if (!document.hidden) {
-            refreshFileList();
+            checkAndReconnect();
         }
     });
 
-    // Handle beforeunload
+    // Handle online/offline events
+    window.addEventListener('online', () => {
+        console.log('🌐 Network online, checking connection...');
+        checkAndReconnect();
+    });
+
+    window.addEventListener('offline', () => {
+        console.log('📴 Network offline');
+        showToast('Network connection lost', 'warning');
+        updateConnectionStatus(false);
+    });
+
+    // Handle beforeunload - gracefully disconnect
     window.addEventListener('beforeunload', () => {
-        socket.emit('leave-room', roomId);
+        stopHeartbeat();
+        if (socket.connected && roomId) {
+            socket.emit('leave-room', roomId);
+        }
     });
 
     // Initial file list refresh
@@ -92,6 +134,260 @@ document.addEventListener('DOMContentLoaded', () => {
         detectMobileClipboard();
     }, 2000);
 });
+
+// Setup WebSocket connection handlers
+function setupSocketHandlers() {
+    // Connection established
+    socket.on('connect', () => {
+        console.log('✅ WebSocket connected:', socket.id);
+        isConnected = true;
+        reconnectAttempts = 0;
+        updateConnectionStatus(true);
+        
+        // Start heartbeat detection
+        startHeartbeat();
+        
+        // If we have a roomId, rejoin the room
+        if (roomId && !isRejoiningRoom) {
+            joinRoom();
+        }
+    });
+
+    // Connection lost
+    socket.on('disconnect', (reason) => {
+        console.log('❌ WebSocket disconnected:', reason);
+        isConnected = false;
+        updateConnectionStatus(false);
+        
+        // Stop heartbeat detection
+        stopHeartbeat();
+        
+        if (reason === 'io server disconnect') {
+            // Server disconnected the socket, need to manually reconnect
+            socket.connect();
+        }
+    });
+
+    // Heartbeat response from server
+    socket.on('heartbeat-pong', (data) => {
+        const now = Date.now();
+        const latency = data.received ? now - data.received : null;
+        console.log('💓 Heartbeat pong received', latency ? `(latency: ${latency}ms)` : '');
+        lastHeartbeatTime = now;
+        
+        // Clear timeout since we got a response
+        if (heartbeatTimeout) {
+            clearTimeout(heartbeatTimeout);
+            heartbeatTimeout = null;
+        }
+        
+        // Update connection status to ensure it shows as connected
+        if (!isConnected) {
+            isConnected = true;
+            updateConnectionStatus(true);
+        }
+    });
+
+    // Reconnection attempt
+    socket.on('reconnect_attempt', (attemptNumber) => {
+        console.log(`🔄 Reconnection attempt ${attemptNumber}...`);
+        reconnectAttempts = attemptNumber;
+        updateConnectionStatus(false, true);
+        showToast(`Reconnecting... (attempt ${attemptNumber})`, 'info');
+    });
+
+    // Reconnection successful
+    socket.on('reconnect', (attemptNumber) => {
+        console.log('✅ WebSocket reconnected after', attemptNumber, 'attempts');
+        isConnected = true;
+        reconnectAttempts = 0;
+        updateConnectionStatus(true);
+        showToast('Connection restored', 'success');
+        
+        // Restart heartbeat detection
+        startHeartbeat();
+        
+        // Rejoin room after reconnection
+        if (roomId) {
+            joinRoom();
+        }
+    });
+
+    // Reconnection failed
+    socket.on('reconnect_failed', () => {
+        console.error('❌ Reconnection failed');
+        updateConnectionStatus(false);
+        showToast('Failed to reconnect. Please refresh the page.', 'error');
+    });
+
+    // Connection error
+    socket.on('connect_error', (error) => {
+        console.error('❌ Connection error:', error);
+        updateConnectionStatus(false);
+        stopHeartbeat();
+    });
+}
+
+// Start heartbeat detection
+function startHeartbeat() {
+    // Clear any existing heartbeat
+    stopHeartbeat();
+    
+    if (!socket.connected) {
+        console.warn('⚠️ Cannot start heartbeat: socket not connected');
+        return;
+    }
+    
+    console.log('💓 Starting heartbeat detection...');
+    lastHeartbeatTime = Date.now();
+    
+    // Send first heartbeat immediately
+    sendHeartbeat();
+    
+    // Send heartbeat periodically
+    heartbeatInterval = setInterval(() => {
+        if (socket.connected) {
+            sendHeartbeat();
+        } else {
+            console.warn('⚠️ Socket not connected, stopping heartbeat');
+            stopHeartbeat();
+        }
+    }, HEARTBEAT_INTERVAL);
+}
+
+// Send heartbeat ping
+function sendHeartbeat() {
+    if (!socket.connected) {
+        return;
+    }
+    
+    console.log('💓 Sending heartbeat ping...');
+    socket.emit('heartbeat-ping', {
+        timestamp: Date.now(),
+        roomId: roomId
+    });
+    
+    // Clear any existing timeout
+    if (heartbeatTimeout) {
+        clearTimeout(heartbeatTimeout);
+    }
+    
+    // Set timeout to detect if server doesn't respond
+    heartbeatTimeout = setTimeout(() => {
+        console.warn('⚠️ Heartbeat timeout - no response from server');
+        const timeSinceLastHeartbeat = lastHeartbeatTime ? Date.now() - lastHeartbeatTime : HEARTBEAT_TIMEOUT * 2;
+        
+        // If no heartbeat response for too long, consider connection dead
+        if (timeSinceLastHeartbeat > HEARTBEAT_TIMEOUT * 2) {
+            console.error('❌ Heartbeat failed - connection may be dead, attempting reconnect');
+            updateConnectionStatus(false);
+            
+            // Try to reconnect
+            if (socket.connected) {
+                socket.disconnect();
+            }
+            socket.connect();
+        }
+    }, HEARTBEAT_TIMEOUT);
+}
+
+// Stop heartbeat detection
+function stopHeartbeat() {
+    if (heartbeatInterval) {
+        clearInterval(heartbeatInterval);
+        heartbeatInterval = null;
+        console.log('💓 Heartbeat stopped');
+    }
+    
+    if (heartbeatTimeout) {
+        clearTimeout(heartbeatTimeout);
+        heartbeatTimeout = null;
+    }
+    
+    lastHeartbeatTime = null;
+}
+
+// Join room function
+function joinRoom() {
+    if (!roomId) {
+        console.warn('⚠️ Cannot join room: roomId is null');
+        return;
+    }
+
+    if (isRejoiningRoom) {
+        console.log('⏳ Already rejoining room, skipping...');
+        return;
+    }
+
+    if (!socket.connected) {
+        console.warn('⚠️ Socket not connected, will join when connected');
+        return;
+    }
+
+    console.log('🚪 Joining room:', roomId);
+    isRejoiningRoom = true;
+    
+    socket.emit('join-room', roomId);
+    
+    // Reset flag after a short delay
+    setTimeout(() => {
+        isRejoiningRoom = false;
+    }, 1000);
+}
+
+// Check connection and reconnect if needed
+function checkAndReconnect() {
+    if (!socket.connected) {
+        console.log('🔄 Connection lost, attempting to reconnect...');
+        if (!socket.io.reconnecting) {
+            socket.connect();
+        }
+    } else {
+        // Connection is active, refresh file list and rejoin room to sync state
+        console.log('✅ Connection active, syncing room state...');
+        refreshFileList();
+        if (roomId) {
+            joinRoom();
+        }
+    }
+}
+
+// Update connection status indicator
+function updateConnectionStatus(connected, reconnecting = false) {
+    const userCountElement = document.getElementById('userCount');
+    if (!userCountElement) return;
+
+    const statusIndicator = document.getElementById('connectionStatus') || createConnectionStatusIndicator();
+    
+    if (connected) {
+        statusIndicator.className = 'connection-status connected';
+        statusIndicator.textContent = '🟢';
+        statusIndicator.title = 'Connected';
+    } else if (reconnecting) {
+        statusIndicator.className = 'connection-status reconnecting';
+        statusIndicator.textContent = '🟡';
+        statusIndicator.title = 'Reconnecting...';
+    } else {
+        statusIndicator.className = 'connection-status disconnected';
+        statusIndicator.textContent = '🔴';
+        statusIndicator.title = 'Disconnected';
+    }
+}
+
+// Create connection status indicator element
+function createConnectionStatusIndicator() {
+    const statusIndicator = document.createElement('span');
+    statusIndicator.id = 'connectionStatus';
+    statusIndicator.className = 'connection-status';
+    statusIndicator.style.cssText = 'margin-left: 8px; font-size: 12px; cursor: help;';
+    
+    const userCountElement = document.getElementById('userCount');
+    if (userCountElement && userCountElement.parentElement) {
+        userCountElement.parentElement.appendChild(statusIndicator);
+    }
+    
+    return statusIndicator;
+}
 
 // Setup event listeners
 function setupEventListeners() {
@@ -189,8 +485,20 @@ function setupEventListeners() {
 
     // Socket events
     socket.on('room-joined', (data) => {
+        console.log('✅ Room joined:', data);
         updateUserInfo(data.userCount);
-        showToast('Joined room successfully', 'success');
+        
+        // Sync files from server if provided
+        if (data.files && Array.isArray(data.files)) {
+            console.log('📋 Syncing files from server:', data.files.length);
+            syncFilesFromServer(data.files);
+        }
+        
+        if (!isRejoiningRoom) {
+            showToast('Joined room successfully', 'success');
+        } else {
+            console.log('✅ Rejoined room successfully');
+        }
     });
 
     socket.on('user-joined', (data) => {
@@ -458,15 +766,95 @@ function downloadVideoFile(fileData) {
 
 // Refresh file list
 async function refreshFileList() {
+    if (!roomId) return;
+    
     try {
         const response = await fetch(`/api/rooms/${roomId}`);
         const data = await response.json();
 
         if (data.success) {
             updateUserInfo(data.userCount);
+            console.log('📋 File list refreshed, user count:', data.userCount);
         }
     } catch (error) {
-        console.error('Refresh error:', error);
+        console.error('❌ Refresh error:', error);
+        // If fetch fails, try to reconnect socket
+        if (!socket.connected) {
+            checkAndReconnect();
+        }
+    }
+}
+
+// Sync files from server (used when rejoining room)
+function syncFilesFromServer(serverFiles) {
+    if (!serverFiles || !Array.isArray(serverFiles)) return;
+    
+    console.log('🔄 Syncing files from server...', serverFiles.length, 'files');
+    
+    // Create a set of existing file IDs (both in memory and DOM)
+    const existingFileIds = new Set(currentFiles.keys());
+    const existingDOMFileIds = new Set();
+    
+    // Check DOM for existing files
+    document.querySelectorAll('.file-item[data-file-id]').forEach(element => {
+        const fileId = element.getAttribute('data-file-id');
+        if (fileId) {
+            existingDOMFileIds.add(fileId);
+            existingFileIds.add(fileId);
+        }
+    });
+    
+    // Add or update files from server
+    serverFiles.forEach(fileData => {
+        if (!fileData || !fileData.id) {
+            console.warn('⚠️ Invalid file data:', fileData);
+            return;
+        }
+        
+        if (!existingFileIds.has(fileData.id)) {
+            // New file from server, add it
+            console.log('➕ Adding file from server:', fileData.name);
+            addFileToList(fileData);
+        } else if (existingDOMFileIds.has(fileData.id)) {
+            // File exists in DOM, update status if needed
+            const existingFile = currentFiles.get(fileData.id);
+            if (existingFile && existingFile.status !== fileData.status) {
+                console.log('🔄 Updating file status:', fileData.name, fileData.status);
+                updateFileStatus(fileData.id, fileData);
+            }
+        } else {
+            // File exists in memory but not in DOM (might have been removed), re-add it
+            console.log('🔄 Re-adding file to DOM:', fileData.name);
+            addFileToList(fileData);
+        }
+    });
+    
+    console.log('✅ File sync completed. Total files:', currentFiles.size);
+}
+
+// Update file status in the UI
+function updateFileStatus(fileId, fileData) {
+    const fileElement = document.querySelector(`.file-item[data-file-id="${fileId}"]`);
+    if (fileElement) {
+        const existingFile = currentFiles.get(fileId);
+        const updatedFile = { ...existingFile, ...fileData };
+        currentFiles.set(fileId, updatedFile);
+        
+        // Update status text
+        const statusText = fileElement.querySelector('.file-status');
+        if (statusText) {
+            statusText.textContent = getStatusText(updatedFile);
+        }
+        
+        // Update class
+        fileElement.classList.remove('uploading', 'completed', 'error');
+        fileElement.classList.add(fileData.status);
+        
+        // Enable/disable buttons
+        const previewBtn = fileElement.querySelector('.btn-preview');
+        const downloadBtn = fileElement.querySelector('.btn-download');
+        if (previewBtn) previewBtn.disabled = fileData.status !== 'completed';
+        if (downloadBtn) downloadBtn.disabled = fileData.status !== 'completed';
     }
 }
 
