@@ -674,6 +674,15 @@ function checkNetworkStatus() {
     return true; // Assume online if can't determine
 }
 
+function removeTags(str) {
+    if ((str === null) || (str === "")) {
+      return false;
+    } else {
+      str = str.toString();
+    }
+    return str.replace(/<[^>]*>/g, "");
+}
+
 // Memory management
 function cleanup() {
     // Clear file maps
@@ -837,9 +846,12 @@ async function handlePastedText(textItem) {
         if (text && text.trim()) {
 
             if (textItem.type == 'text/html') {
-                let parser = new DOMParser();
-                let doc = parser.parseFromString(text, "text/html");
-                text = doc.body.textContent;
+                // dom的方式处理
+                // let parser = new DOMParser();
+                // let doc = parser.parseFromString(text, "text/html");
+                // text = doc.body.textContent;
+                // 自定义方法处理
+                // text = removeTags(text);
             }
 
             if (isMobile) {
